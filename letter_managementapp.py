@@ -8,7 +8,7 @@ import os
 
 # Dejinta bogga
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
-st.title("AI Nidaamka Maareynta Waraaqaha")
+st.title("Nidaamka Maareynta Waraaqaha")
 st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhli ay isku diraan waraaqaha.")
 
 # Liiska waaxyaha

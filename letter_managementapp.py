@@ -37,7 +37,7 @@ with col2:
     loo_dirayo = st.selectbox("Loogu talagalay waaxda:", [w for w in waaxyo if w != diraha])
     taariikh = st.date_input("Taariikhda", value=datetime.today())
 
-farriin = st.text_area("Qoraalka Waraaqda")
+farriin = st.text_area("Objective")
 uploaded_file = st.file_uploader("Upload Lifaaq (ikhtiyaari ah)", type=["pdf", "docx", "xlsx", "csv"])
 
 # File-ka lifaaqa u keydi base64

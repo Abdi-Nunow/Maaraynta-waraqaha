@@ -27,37 +27,58 @@ waaxyo_passwords = {
     "Waaxda Wacyigalinta": "Admin2100"
 }
 
+# Admin login
+admin_user = "Admin"
+admin_password = "Admin2100"
+
 # SESSION STATE - User-ka
 if "waaxda_user" not in st.session_state:
     st.session_state.waaxda_user = None
+    st.session_state.is_admin = False
 
 # Haddii user-ka weli ma login-galin
 if st.session_state.waaxda_user is None:
     st.subheader("🔐 Fadlan gal nidaamka")
-    waax_user = st.selectbox("Waaxda:", list(waaxyo_passwords.keys()))
-    password = st.text_input("Password", type="password")
+    nooca = st.radio("Nooca isticmaalaha:", ["Waax", "Admin"])
 
-    if st.button("✅ Gali"):
-        if password == waaxyo_passwords.get(waax_user):
-            st.session_state.waaxda_user = waax_user
-            st.success(f"Ku soo dhawoow, {waax_user}")
-            st.rerun()
-        else:
-            st.error("Password-ka waa khaldan ❌")
+    if nooca == "Waax":
+        waax_user = st.selectbox("Waaxda:", list(waaxyo_passwords.keys()))
+        password = st.text_input("Password", type="password")
+        if st.button("✅ Gali", key="login_waax"):
+            if password == waaxyo_passwords.get(waax_user):
+                st.session_state.waaxda_user = waax_user
+                st.session_state.is_admin = False
+                st.success(f"Ku soo dhawoow, {waax_user}")
+                st.rerun()
+            else:
+                st.error("Password-ka waa khaldan ❌")
+    else:
+        admin_input = st.text_input("Admin username")
+        admin_pass = st.text_input("Admin password", type="password")
+        if st.button("✅ Gali", key="login_admin"):
+            if admin_input == admin_user and admin_pass == admin_password:
+                st.session_state.waaxda_user = "Admin"
+                st.session_state.is_admin = True
+                st.success("Ku soo dhawoow, Admin")
+                st.rerun()
+            else:
+                st.error("Xogta Admin waa khaldan ❌")
 
 else:
     waaxda_user = st.session_state.waaxda_user
+    is_admin = st.session_state.is_admin
     st.success(f"👋 Waad soo dhawaatay, {waaxda_user} ✅")
 
     # 🔔 Notifications
     if os.path.exists("waraaqaha.csv"):
         df_all = pd.read_csv("waraaqaha.csv")
-        df_user = df_all[df_all["Loogu talagalay"] == waaxda_user]
-        count = df_user.shape[0]
-        if count > 0:
-            st.info(f"🔔 **Ogeysiis:** Waxaa kuu yaalla **{count} waraaqo** cusub.")
-        else:
-            st.success("✅ Waqtigan ma jiraan waraaqo cusub.")
+        if not is_admin:
+            df_user = df_all[df_all["Loogu talagalay"] == waaxda_user]
+            count = df_user.shape[0]
+            if count > 0:
+                st.info(f"🔔 **Ogeysiis:** Waxaa kuu yaalla **{count} waraaqo** cusub.")
+            else:
+                st.success("✅ Waqtigan ma jiraan waraaqo cusub.")
     else:
         df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FileData"])
 
@@ -98,14 +119,17 @@ else:
 
     st.markdown("---")
     st.subheader("📥 Waraaqaha La Helay")
-    df_helay = df_all[df_all["Loogu talagalay"] == waaxda_user]
+    if is_admin:
+        df_helay = df_all
+    else:
+        df_helay = df_all[df_all["Loogu talagalay"] == waaxda_user]
 
     if not df_helay.empty:
         st.dataframe(df_helay[["Taariikh", "Ka socota", "Cinwaanka", "File"]])
 
         # Word Download
         doc = Document()
-        doc.add_heading(f"Waraaqaha loo diray {waaxda_user}", 0)
+        doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
         for _, row in df_helay.iterrows():
             doc.add_paragraph(f"Taariikh: {row['Taariikh']}")
             doc.add_paragraph(f"Ka Socota: {row['Ka socota']}")
@@ -140,4 +164,5 @@ else:
     st.markdown("---")
     if st.button("🚪 Bixi"):
         st.session_state.waaxda_user = None
+        st.session_state.is_admin = False
         st.rerun()

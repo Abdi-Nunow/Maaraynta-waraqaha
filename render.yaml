@@ -1,7 +1,7 @@
 services:
   - type: web
-    name: letter_management
+    name: Maaraynta-waraqaha
     env: python
+    plan: free
     buildCommand: "pip install -r requirements.txt"
     startCommand: "streamlit run app.py"
-    autoDeploy: true

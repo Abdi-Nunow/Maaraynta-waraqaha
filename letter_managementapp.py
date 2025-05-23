@@ -13,18 +13,18 @@ st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhli ay 
 
 # Liiska waaxyaha iyo passwordkooda
 waaxyo_passwords = {
-    "Xafiiska Wasiirka": "Admin1234",
-    "Wasiir Ku-xigeenka 1aad": "Admin1234",
-    "Wasiir Ku-xigeenka 2aad": "Admin1234",
-    "Wasiir Ku-xigeenka 3aad": "Admin1234",
-    "secratory": "Admin1234",
-    "Waaxda Xadaynta": "Admin1234",
-    "Waaxda Auditka": "Admin1234",
-    "Waaxda Adeega Shacabka": "Admin1234",
-    "Waaxda ICT": "Admin1234",
-    "Waaxda Public Relation": "Admin1234",
-    "Waaxda HRM": "Admin1234",
-    "Waaxda Wacyigalinta": "Admin1234"
+    "Xafiiska Wasiirka": "Admin2100",
+    "Wasiir Ku-xigeenka 1aad": "Admin2100",
+    "Wasiir Ku-xigeenka 2aad": "Admin2100",
+    "Wasiir Ku-xigeenka 3aad": "Admin2100",
+    "secratory": "Admin2100",
+    "Waaxda Xadaynta": "Admin2100",
+    "Waaxda Auditka": "Admin2100",
+    "Waaxda Adeega Shacabka": "Admin2100",
+    "Waaxda ICT": "Admin2100",
+    "Waaxda Public Relation": "Admin2100",
+    "Waaxda HRM": "Admin2100",
+    "Waaxda Wacyigalinta": "Admin2100"
 }
 
 # SESSION STATE - User-ka

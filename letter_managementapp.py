@@ -55,7 +55,8 @@ if st.session_state.waaxda_user is None:
                 st.session_state.waaxda_user = waax_user
                 st.session_state.is_admin = False
                 st.success(f"Ku soo dhawoow, {waax_user}")
-                st.rerun()
+                st.experimental_rerun()
+
             else:
                 st.error("Password-ka waa khaldan ❌")
     else:
@@ -66,7 +67,8 @@ if st.session_state.waaxda_user is None:
                 st.session_state.waaxda_user = "Admin"
                 st.session_state.is_admin = True
                 st.success("Ku soo dhawoow, Admin")
-                st.rerun()
+            st.experimental_rerun()
+
             else:
                 st.error("Xogta Admin waa khaldan ❌")
 

@@ -176,17 +176,18 @@ else:
         new_pass = st.text_input("Password Cusub", type="password")
         confirm_pass = st.text_input("Mar kale geli password-ka cusub", type="password")
 
-        if st.button("💾 Badal Password-ka"):
-            if old_pass != waaxyo_passwords.get(waaxda_user):
-                st.error("Password-kii hore waa khaldan ❌")
-            elif new_pass != confirm_pass:
-                st.error("Password-yada cusub isma mid aha ❌")
-            elif len(new_pass) < 6:
-                st.warning("Password-ka waa inuu ka bato 6 xaraf.")
-            else:
-                df_passwords.loc[df_passwords.waaxda == waaxda_user, "password"] = new_pass
-                df_passwords.to_csv(passwords_file, index=False)
-                st.success("✅ Password-ka waa la badalay si guul ah")
+           if st.button("💾 Badal Password-ka"):
+        if old_pass != waaxyo_passwords.get(waaxda_user):
+            st.error("Password-kii hore waa khaldan ❌")
+        elif new_pass != confirm_pass:
+            st.error("Password-yada cusub isma mid aha ❌")
+        elif len(new_pass) < 6:
+            st.warning("Password-ka waa inuu ka bato 6 xaraf.")
+        else:
+            df_passwords.loc[df_passwords.waaxda == waaxda_user, "password"] = new_pass
+            df_passwords.to_csv(passwords_file, index=False)
+            st.success("✅ Password-ka waa la badalay si guul ah")
+
 
     # Bixitaanka
     st.markdown("---")

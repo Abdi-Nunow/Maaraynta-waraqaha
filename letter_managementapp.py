@@ -18,7 +18,6 @@ waaxyo = [
     "Wasiir Ku-xigeenka 2aad",
     "Wasiir Ku-xigeenka 3aad",
     "secratory",
-      "Waaxda Finance",
     "Waaxda Xadaynta",
     "Waaxda Auditka",
     "Waaxda Adeega Shacabka",

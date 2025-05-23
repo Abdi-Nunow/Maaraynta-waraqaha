@@ -17,7 +17,7 @@ waaxyo_passwords = {
     "Wasiir Ku-xigeenka 1aad": "Admin2100",
     "Wasiir Ku-xigeenka 2aad": "Admin2100",
     "Wasiir Ku-xigeenka 3aad": "Admin2100",
-    "secratory": "Admin2100",
+    "Secratory": "Admin2100",
     "Waaxda Xadaynta": "Admin2100",
     "Waaxda Auditka": "Admin2100",
     "Waaxda Adeega Shacabka": "Admin2100",
@@ -36,7 +36,6 @@ if "waaxda_user" not in st.session_state:
     st.session_state.waaxda_user = None
     st.session_state.is_admin = False
 
-# Haddii user-ka weli ma login-galin
 if st.session_state.waaxda_user is None:
     st.subheader("🔐 Fadlan gal nidaamka")
     nooca = st.radio("Nooca isticmaalaha:", ["Waax", "Admin"])
@@ -69,16 +68,9 @@ else:
     is_admin = st.session_state.is_admin
     st.success(f"👋 Waad soo dhawaatay, {waaxda_user} ✅")
 
-    # 🔔 Notifications
+    # Akhrinta faylka jira
     if os.path.exists("waraaqaha.csv"):
         df_all = pd.read_csv("waraaqaha.csv")
-        if not is_admin:
-            df_user = df_all[df_all["Loogu talagalay"] == waaxda_user]
-            count = df_user.shape[0]
-            if count > 0:
-                st.info(f"🔔 **Ogeysiis:** Waxaa kuu yaalla **{count} waraaqo** cusub.")
-            else:
-                st.success("✅ Waqtigan ma jiraan waraaqo cusub.")
     else:
         df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FileData"])
 
@@ -93,8 +85,8 @@ else:
         loo_dirayo = st.selectbox("Loogu talagalay waaxda:", [w for w in waaxyo_passwords if w != diraha])
         taariikh = st.date_input("Taariikhda", value=datetime.today())
 
-    farriin = st.text_area("Objective")
-    uploaded_file = st.file_uploader("Upload Lifaaq (ikhtiyaari ah)", type=["pdf", "docx", "xlsx", "csv"])
+    farriin = st.text_area("Qoraalka Waraaqda")
+    uploaded_file = st.file_uploader("Lifaaq (optional)", type=["pdf", "docx", "xlsx", "csv"])
 
     file_name = ""
     file_data = ""
@@ -127,7 +119,7 @@ else:
     if not df_helay.empty:
         st.dataframe(df_helay[["Taariikh", "Ka socota", "Cinwaanka", "File"]])
 
-        # Word Download
+        # Word download
         doc = Document()
         doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
         for _, row in df_helay.iterrows():
@@ -148,7 +140,7 @@ else:
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
-        # Excel Download
+        # Excel download
         excel_buffer = io.BytesIO()
         df_helay.drop(columns=["FileData"], errors='ignore').to_excel(excel_buffer, index=False)
         st.download_button(
@@ -160,8 +152,6 @@ else:
     else:
         st.warning("Waraaqo lama helin.")
 
-    # Bixitaanka
-    st.markdown("---")
     if st.button("🚪 Bixi"):
         st.session_state.waaxda_user = None
         st.session_state.is_admin = False

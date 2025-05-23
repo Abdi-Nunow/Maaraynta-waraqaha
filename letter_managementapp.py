@@ -67,7 +67,7 @@ if st.session_state.waaxda_user is None:
                 st.session_state.waaxda_user = "Admin"
                 st.session_state.is_admin = True
                 st.success("Ku soo dhawoow, Admin")
-            st.experimental_rerun()
+                st.experimental_rerun()
 
             else:
                 st.error("Xogta Admin waa khaldan ❌")
@@ -193,4 +193,4 @@ else:
     if st.button("🚪 Bixi"):
         st.session_state.waaxda_user = None
         st.session_state.is_admin = False
-        st.rerun()
+        st.experimental_rerun()

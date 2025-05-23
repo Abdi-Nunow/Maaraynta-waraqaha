@@ -11,21 +11,21 @@ st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 st.title("📁 Nidaamka Maareynta Waraaqaha")
 st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhli ay isku diraan waraaqaha.")
 
-# Liiska waaxyaha
-waaxyo = [
-    "Xafiiska Wasiirka",
-    "Wasiir Ku-xigeenka 1aad",
-    "Wasiir Ku-xigeenka 2aad",
-    "Wasiir Ku-xigeenka 3aad",
-    "secratory",
-    "Waaxda Xadaynta",
-    "Waaxda Auditka",
-    "Waaxda Adeega Shacabka",
-    "Waaxda ICT",
-    "Waaxda Public Relation",
-    "Waaxda HRM",
-    "Waaxda Wacyigalinta"
-]
+# Liiska waaxyaha iyo passwordkooda
+waaxyo_passwords = {
+    "Xafiiska Wasiirka": "Admin1234",
+    "Wasiir Ku-xigeenka 1aad": "Admin1234",
+    "Wasiir Ku-xigeenka 2aad": "Admin1234",
+    "Wasiir Ku-xigeenka 3aad": "Admin1234",
+    "secratory": "Admin1234",
+    "Waaxda Xadaynta": "Admin1234",
+    "Waaxda Auditka": "Admin1234",
+    "Waaxda Adeega Shacabka": "Admin1234",
+    "Waaxda ICT": "Admin1234",
+    "Waaxda Public Relation": "Admin1234",
+    "Waaxda HRM": "Admin1234",
+    "Waaxda Wacyigalinta": "Admin1234"
+}
 
 # SESSION STATE - User-ka
 if "waaxda_user" not in st.session_state:
@@ -33,11 +33,17 @@ if "waaxda_user" not in st.session_state:
 
 # Haddii user-ka weli ma login-galin
 if st.session_state.waaxda_user is None:
-    st.subheader("🔐 Fadlan dooro waaxdaada si aad u gasho:")
-    waax_user = st.selectbox("Waaxda:", waaxyo)
+    st.subheader("🔐 Fadlan gal nidaamka")
+    waax_user = st.selectbox("Waaxda:", list(waaxyo_passwords.keys()))
+    password = st.text_input("Password", type="password")
+
     if st.button("✅ Gali"):
-        st.session_state.waaxda_user = waax_user
-        st.rerun()
+        if password == waaxyo_passwords.get(waax_user):
+            st.session_state.waaxda_user = waax_user
+            st.success(f"Ku soo dhawoow, {waax_user}")
+            st.rerun()
+        else:
+            st.error("Password-ka waa khaldan ❌")
 
 else:
     waaxda_user = st.session_state.waaxda_user
@@ -63,7 +69,7 @@ else:
         diraha = waaxda_user
         cinwaanka = st.text_input("Cinwaanka Waraaqda")
     with col2:
-        loo_dirayo = st.selectbox("Loogu talagalay waaxda:", [w for w in waaxyo if w != diraha])
+        loo_dirayo = st.selectbox("Loogu talagalay waaxda:", [w for w in waaxyo_passwords if w != diraha])
         taariikh = st.date_input("Taariikhda", value=datetime.today())
 
     farriin = st.text_area("Objective")

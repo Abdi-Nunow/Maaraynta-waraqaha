@@ -75,7 +75,7 @@ if st.session_state.waaxda_user is None:
 else:
     waaxda_user = st.session_state.waaxda_user
     is_admin = st.session_state.is_admin
-    st.success(f"👋 Waad soo dhawaatay, {waaxda_user} ✅")
+    st.success(f"👋 kuso dhawow waaxda, {waaxda_user} ✅")
 
     # 🔔 Notifications
     if os.path.exists("waraaqaha.csv"):

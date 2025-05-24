@@ -131,43 +131,86 @@ else:
         df_helay = df_all
     else:
         df_helay = df_all[df_all["Loogu talagalay"] == waaxda_user]
+if not df_helay.empty:
+    # Word Download
+    doc = Document()
+    doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
+    for _, row in df_helay.iterrows():
+        doc.add_paragraph(f"Taariikh: {row['Taariikh']}")
+        doc.add_paragraph(f"Ka Socota: {row['Ka socota']}")
+        doc.add_paragraph(f"Cinwaan: {row['Cinwaanka']}", style='List Bullet')
+        doc.add_paragraph(str(row['Qoraalka']) if pd.notna(row['Qoraalka']) else "(Qoraal ma jiro)")
+        if pd.notna(row.get("File")) and row["File"]:
+            doc.add_paragraph(f"Lifaaq: {row['File']}")
+        doc.add_paragraph("---")
 
-    if not df_helay.empty:
-        st.dataframe(df_helay[["Taariikh", "Ka socota", "Cinwaanka", "File"]])
+    word_buffer = io.BytesIO()
+    doc.save(word_buffer)
+    st.download_button(
+        label="📄 Soo Degso (Word)",
+        data=word_buffer.getvalue(),
+        file_name="waraaqaha.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
 
-        # Word Download
-        doc = Document()
-        doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
-        for _, row in df_helay.iterrows():
-            doc.add_paragraph(f"Taariikh: {row['Taariikh']}")
-            doc.add_paragraph(f"Ka Socota: {row['Ka socota']}")
-            doc.add_paragraph(f"Cinwaan: {row['Cinwaanka']}", style='List Bullet')
-            doc.add_paragraph(str(row['Qoraalka']) if pd.notna(row['Qoraalka']) else "(Qoraal ma jiro)")
-            if pd.notna(row.get("File")) and row["File"]:
-                doc.add_paragraph(f"Lifaaq: {row['File']}")
-            doc.add_paragraph("---")
+    # Excel Download
+    excel_buffer = io.BytesIO()
+    df_helay.drop(columns=["FileData"], errors='ignore').to_excel(excel_buffer, index=False)
+    st.download_button(
+        label="📊 Soo Degso (Excel)",
+        data=excel_buffer.getvalue(),
+        file_name="waraaqaha.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
-        word_buffer = io.BytesIO()
-        doc.save(word_buffer)
-        st.download_button(
-            label="📄 Soo Degso (Word)",
-            data=word_buffer.getvalue(),
-            file_name="waraaqaha.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+    # PDF Download
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
 
-        # Excel Download
-        excel_buffer = io.BytesIO()
-        df_helay.drop(columns=["FileData"], errors='ignore').to_excel(excel_buffer, index=False)
-        st.download_button(
-            label="📊 Soo Degso (Excel)",
-            data=excel_buffer.getvalue(),
-            file_name="waraaqaha.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    else:
-        st.warning("Waraaqo lama helin.")
+    pdf_buffer = io.BytesIO()
+    pdf = canvas.Canvas(pdf_buffer, pagesize=A4)
+    width, height = A4
 
+    pdf.setFont("Helvetica-Bold", 14)
+    y = height - 40
+    pdf.drawString(40, y, f"Waraaqaha {'Dhammaan Waaxyaha' if is_admin else 'Loo diray ' + waaxda_user}")
+    y -= 30
+
+    pdf.setFont("Helvetica", 11)
+    for _, row in df_helay.iterrows():
+        if y < 100:
+            pdf.showPage()
+            y = height - 40
+            pdf.setFont("Helvetica", 11)
+
+        pdf.drawString(40, y, f"Taariikh: {row['Taariikh']}")
+        y -= 18
+        pdf.drawString(40, y, f"Ka Socota: {row['Ka socota']}")
+        y -= 18
+        pdf.drawString(40, y, f"Cinwaan: {row['Cinwaanka']}")
+        y -= 18
+        qoraalka = row['Qoraalka'] if pd.notna(row['Qoraalka']) else "(Qoraal ma jiro)"
+        qoraal_lines = [qoraalka[i:i+90] for i in range(0, len(qoraalka), 90)]
+        for line in qoraal_lines:
+            pdf.drawString(40, y, f"Qoraalka: {line}" if line == qoraal_lines[0] else line)
+            y -= 15
+        if pd.notna(row.get("File")) and row["File"]:
+            pdf.drawString(40, y, f"Lifaaq: {row['File']}")
+            y -= 18
+        pdf.drawString(40, y, "-" * 80)
+        y -= 25
+
+    pdf.save()
+    pdf_buffer.seek(0)
+
+    st.download_button(
+        label="📥 Soo Degso (PDF)",
+        data=pdf_buffer,
+        file_name="waraaqaha.pdf",
+        mime="application/pdf"
+    )
+else:
+    st.warning("Waraaqo lama helin.")
     # 🔐 Change Password
     if not is_admin:
         st.markdown("---")

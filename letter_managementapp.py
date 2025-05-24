@@ -9,7 +9,7 @@ import os
 # Dejinta bogga
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 st.title("📁 Nidaamka Maareynta Waraaqaha")
-st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhli ay isku diraan waraaqaha.")
+st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")
 
 # Liiska waaxyaha iyo passwordkooda (initial values)
 passwords_file = "passwords.csv"
@@ -58,7 +58,7 @@ if st.session_state.waaxda_user is None:
                 st.experimental_rerun()
 
             else:
-                st.error("Password-ka waa khaldan ❌")
+                st.error("Password-ka waa khaldanyahay ❌")
     else:
         admin_input = st.text_input("Admin username")
         admin_pass = st.text_input("Admin password", type="password")
@@ -70,7 +70,7 @@ if st.session_state.waaxda_user is None:
                 st.experimental_rerun()
 
             else:
-                st.error("Xogta Admin waa khaldan ❌")
+                st.error("Xogta Admin waa khaldantahay ❌")
 
 else:
     waaxda_user = st.session_state.waaxda_user

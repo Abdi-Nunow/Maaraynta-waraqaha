@@ -1,138 +1,31 @@
 import streamlit as st
 import pandas as pd
 import io
-from datetime import datetime
 from docx import Document
-import base64
-import os
+from fpdf import FPDF
 
-# Dejinta bogga
-st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
-st.title("📁 Nidaamka Maareynta Waraaqaha")
-st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")
+# Tusaale ahaan DataFrame-ka guud
+# Waa in 'df' horey loo dejiyey, tusaale ahaan ka yimid CSV ama DB
+# Halkan waa tusaale fudud:
+df = pd.DataFrame([
+    {"Taariikh": "2025-05-01", "Ka socota": "ICT", "Loogu talagalay": "HRM", "Cinwaanka": "Warbixin", "Qoraalka": "Tani waa warbixin", "File": "warbixin.pdf"},
+    {"Taariikh": "2025-05-02", "Ka socota": "Audit", "Loogu talagalay": "ICT", "Cinwaanka": "Ogaal", "Qoraalka": None, "File": ""},
+])
 
-# Liiska waaxyaha iyo passwordkooda (initial values)
-passwords_file = "passwords.csv"
-if not os.path.exists(passwords_file):
-    default_passwords = {
-        "Xafiiska Wasiirka": "Admin2100",
-        "Wasiir Ku-xigeenka 1aad": "Admin2100",
-        "Wasiir Ku-xigeenka 2aad": "Admin2100",
-        "Wasiir Ku-xigeenka 3aad": "Admin2100",
-        "secratory": "Admin2100",
-        "Waaxda Xadaynta": "Admin2100",
-        "Waaxda Auditka": "Admin2100",
-        "Waaxda Adeega Shacabka": "Admin2100",
-        "Waaxda ICT": "Admin2100",
-        "Waaxda Public Relation": "Admin2100",
-        "Waaxda HRM": "Admin2100",
-        "Waaxda Wacyigalinta": "Admin2100"
-    }
-    pd.DataFrame(list(default_passwords.items()), columns=["waaxda", "password"]).to_csv(passwords_file, index=False)
+# Qiyaasaha user-ka
+is_admin = st.session_state.get("is_admin", False)
+waaxda_user = st.session_state.get("waaxda_user", "ICT")
 
-df_passwords = pd.read_csv(passwords_file)
-waaxyo_passwords = dict(zip(df_passwords.waaxda, df_passwords.password))
-
-# Admin login
-admin_user = "Admin"
-admin_password = "Admin2100"
-
-# SESSION STATE - User-ka
-if "waaxda_user" not in st.session_state:
-    st.session_state.waaxda_user = None
-    st.session_state.is_admin = False
-
-# Haddii user-ka weli ma login-galin
-if st.session_state.waaxda_user is None:
-    st.subheader("🔐 Fadlan gal nidaamka")
-    nooca = st.radio("Nooca isticmaalaha:", ["Waax", "Admin"])
-
-    if nooca == "Waax":
-        waax_user = st.selectbox("Waaxda:", list(waaxyo_passwords.keys()))
-        password = st.text_input("Password", type="password")
-        if st.button("✅ Gali", key="login_waax"):
-            if password == waaxyo_passwords.get(waax_user):
-                st.session_state.waaxda_user = waax_user
-                st.session_state.is_admin = False
-                st.success(f"Ku soo dhawoow, {waax_user}")
-                st.experimental_rerun()
-
-            else:
-                st.error("Password-ka waa khaldanyahay ❌")
-    else:
-        admin_input = st.text_input("Admin username")
-        admin_pass = st.text_input("Admin password", type="password")
-        if st.button("✅ Gali", key="login_admin"):
-            if admin_input == admin_user and admin_pass == admin_password:
-                st.session_state.waaxda_user = "Admin"
-                st.session_state.is_admin = True
-                st.success("Ku soo dhawoow, Admin")
-                st.experimental_rerun()
-
-            else:
-                st.error("Xogta Admin waa khaldantahay ❌")
-
+# Samee df_helay
+if is_admin:
+    df_helay = df.copy()
 else:
-    waaxda_user = st.session_state.waaxda_user
-    is_admin = st.session_state.is_admin
-    st.success(f"👋 kuso dhawow waaxda, {waaxda_user} ✅")
+    df_helay = df[df["Loogu talagalay"] == waaxda_user]
 
-    # 🔔 Notifications
-    if os.path.exists("waraaqaha.csv"):
-        df_all = pd.read_csv("waraaqaha.csv")
-        if not is_admin:
-            df_user = df_all[df_all["Loogu talagalay"] == waaxda_user]
-            count = df_user.shape[0]
-            if count > 0:
-                st.info(f"🔔 **Ogeysiis:** Waxaa kuu yaalla **{count} waraaqo** cusub.")
-            else:
-                st.success("✅ Waqtigan ma jiraan waraaqo cusub.")
-    else:
-        df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FileData"])
-
-    st.markdown("---")
-    st.subheader("📤 Dir Waraaq Cusub")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        diraha = waaxda_user
-        cinwaanka = st.text_input("Cinwaanka Waraaqda")
-    with col2:
-        loo_dirayo = st.selectbox("Loogu talagalay waaxda:", [w for w in waaxyo_passwords if w != diraha])
-        taariikh = st.date_input("Taariikhda", value=datetime.today())
-
-    farriin = st.text_area("Objective")
-    uploaded_file = st.file_uploader("Upload Lifaaq (ikhtiyaari ah)", type=["pdf", "docx", "xlsx", "csv"])
-
-    file_name = ""
-    file_data = ""
-    if uploaded_file is not None:
-        file_name = uploaded_file.name
-        file_data = base64.b64encode(uploaded_file.read()).decode("utf-8")
-
-    if st.button("📨 Dir Waraaqda"):
-        xog = {
-            "Ka socota": diraha,
-            "Loogu talagalay": loo_dirayo,
-            "Cinwaanka": cinwaanka,
-            "Qoraalka": farriin,
-            "Taariikh": taariikh.strftime("%Y-%m-%d"),
-            "File": file_name,
-            "FileData": file_data
-        }
-
-        df_all = pd.concat([df_all, pd.DataFrame([xog])], ignore_index=True)
-        df_all.to_csv("waraaqaha.csv", index=False)
-        st.success("✅ Waraaqda waa la diray.")
-
-    st.markdown("---")
-    st.subheader("📥 Waraaqaha La Helay")
-    if is_admin:
-        df_helay = df_all
-    else:
-        df_helay = df_all[df_all["Loogu talagalay"] == waaxda_user]
+# Haddii waraaqo la helay
 if not df_helay.empty:
-    # Word Download
+
+    # ========== WORD ==========
     doc = Document()
     doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
     for _, row in df_helay.iterrows():
@@ -153,7 +46,7 @@ if not df_helay.empty:
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
-    # Excel Download
+    # ========== EXCEL ==========
     excel_buffer = io.BytesIO()
     df_helay.drop(columns=["FileData"], errors='ignore').to_excel(excel_buffer, index=False)
     st.download_button(
@@ -163,77 +56,30 @@ if not df_helay.empty:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    # PDF Download
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
+    # ========== PDF ==========
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", ln=True, align='C')
+
+    for _, row in df_helay.iterrows():
+        pdf.cell(200, 10, txt=f"Taariikh: {row['Taariikh']}", ln=True)
+        pdf.cell(200, 10, txt=f"Ka Socota: {row['Ka socota']}", ln=True)
+        pdf.cell(200, 10, txt=f"Cinwaan: {row['Cinwaanka']}", ln=True)
+        qoraal = str(row['Qoraalka']) if pd.notna(row['Qoraalka']) else "(Qoraal ma jiro)"
+        pdf.multi_cell(0, 10, txt=f"Qoraal: {qoraal}")
+        if pd.notna(row.get("File")) and row["File"]:
+            pdf.cell(200, 10, txt=f"Lifaaq: {row['File']}", ln=True)
+        pdf.cell(200, 10, txt="---", ln=True)
 
     pdf_buffer = io.BytesIO()
-    pdf = canvas.Canvas(pdf_buffer, pagesize=A4)
-    width, height = A4
-
-    pdf.setFont("Helvetica-Bold", 14)
-    y = height - 40
-    pdf.drawString(40, y, f"Waraaqaha {'Dhammaan Waaxyaha' if is_admin else 'Loo diray ' + waaxda_user}")
-    y -= 30
-
-    pdf.setFont("Helvetica", 11)
-    for _, row in df_helay.iterrows():
-        if y < 100:
-            pdf.showPage()
-            y = height - 40
-            pdf.setFont("Helvetica", 11)
-
-        pdf.drawString(40, y, f"Taariikh: {row['Taariikh']}")
-        y -= 18
-        pdf.drawString(40, y, f"Ka Socota: {row['Ka socota']}")
-        y -= 18
-        pdf.drawString(40, y, f"Cinwaan: {row['Cinwaanka']}")
-        y -= 18
-        qoraalka = row['Qoraalka'] if pd.notna(row['Qoraalka']) else "(Qoraal ma jiro)"
-        qoraal_lines = [qoraalka[i:i+90] for i in range(0, len(qoraalka), 90)]
-        for line in qoraal_lines:
-            pdf.drawString(40, y, f"Qoraalka: {line}" if line == qoraal_lines[0] else line)
-            y -= 15
-        if pd.notna(row.get("File")) and row["File"]:
-            pdf.drawString(40, y, f"Lifaaq: {row['File']}")
-            y -= 18
-        pdf.drawString(40, y, "-" * 80)
-        y -= 25
-
-    pdf.save()
-    pdf_buffer.seek(0)
-
+    pdf.output(pdf_buffer)
     st.download_button(
-        label="📥 Soo Degso (PDF)",
-        data=pdf_buffer,
+        label="🖨️ Soo Degso (PDF)",
+        data=pdf_buffer.getvalue(),
         file_name="waraaqaha.pdf",
         mime="application/pdf"
     )
+
 else:
     st.warning("Waraaqo lama helin.")
-    # 🔐 Change Password
-    if not is_admin:
-        st.markdown("---")
-        st.subheader("🔒 Bedel Password-ka")
-        old_pass = st.text_input("Password-kii Hore", type="password")
-        new_pass = st.text_input("Password Cusub", type="password")
-        confirm_pass = st.text_input("Mar kale geli password-ka cusub", type="password")
-
-        if st.button("💾 Badal Password-ka"):
-            if old_pass != waaxyo_passwords.get(waaxda_user):
-                st.error("Password-kii hore waa khaldan ❌")
-            elif new_pass != confirm_pass:
-                st.error("Password-yada cusub isma mid aha ❌")
-            elif len(new_pass) < 6:
-                st.warning("Password-ka waa inuu ka bato 6 xaraf.")
-            else:
-                df_passwords.loc[df_passwords.waaxda == waaxda_user, "password"] = new_pass
-                df_passwords.to_csv(passwords_file, index=False)
-                st.success("✅ Password-ka waa la badalay si guul ah")
-
-    # Bixitaanka
-    st.markdown("---")
-    if st.button("🚪 Bixi"):
-        st.session_state.waaxda_user = None
-        st.session_state.is_admin = False
-        st.experimental_rerun()    

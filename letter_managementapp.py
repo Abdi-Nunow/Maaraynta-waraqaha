@@ -128,19 +128,19 @@ else:
     st.subheader("📥 Waraaqaha La Helay")
 
     # Search filters
-    search_date = st.date_input("Raadi taariikh gaar ah", value=None)
+    st.markdown("#### 🔍 Raadi Waraaq")
     search_text = st.text_input("Raadi cinwaan ama ka socota")
+    search_date = st.date_input("Raadi taariikh gaar ah", value=None)
 
     if is_admin:
         df_helay = df_all
     else:
         df_helay = df_all[df_all["Loogu talagalay"] == waaxda_user]
 
-    # Apply filters
-    if search_date:
-        df_helay = df_helay[df_helay["Taariikh"] == search_date.strftime("%Y-%m-%d")]
     if search_text:
         df_helay = df_helay[df_helay["Cinwaanka"].str.contains(search_text, case=False, na=False) | df_helay["Ka socota"].str.contains(search_text, case=False, na=False)]
+    if search_date:
+        df_helay = df_helay[df_helay["Taariikh"] == search_date.strftime("%Y-%m-%d")]
 
     if not df_helay.empty:
         st.dataframe(df_helay[["Taariikh", "Ka socota", "Cinwaanka", "File"]])
@@ -170,7 +170,7 @@ else:
         excel_buffer = io.BytesIO()
         df_helay.drop(columns=["FileData"], errors='ignore').to_excel(excel_buffer, index=False)
         st.download_button(
-            label="📊 Soo Degso (Excel)",
+            label="📈 Soo Degso (Excel)",
             data=excel_buffer.getvalue(),
             file_name="waraaqaha.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -186,7 +186,7 @@ else:
         new_pass = st.text_input("Password Cusub", type="password")
         confirm_pass = st.text_input("Mar kale geli password-ka cusub", type="password")
 
-        if st.button("💾 Badal Password-ka"):
+        if st.button("📅 Badal Password-ka"):
             if old_pass != waaxyo_passwords.get(waaxda_user):
                 st.error("Password-kii hore waa khaldan ❌")
             elif new_pass != confirm_pass:

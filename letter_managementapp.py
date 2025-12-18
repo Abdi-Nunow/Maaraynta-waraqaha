@@ -5,7 +5,10 @@ from datetime import datetime
 from docx import Document
 import base64
 import os
+import streamlit as st
 
+st.title("App waa shaqaynayaa ✅")
+st.write("Haddii aad tan aragto, Streamlit waa OK")
 # Dejinta bogga
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 st.title("📁 Nidaamka Maareynta Waraaqaha")

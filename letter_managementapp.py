@@ -7,7 +7,10 @@ import os
 
 # ===== PAGE CONFIG =====
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
-st.title("📁 Nidaamka Maareynta Waraaqaha")
+
+# ===== LOGO =====
+st.image("uploads/images.png", width=250)
+st.markdown("## 📁 Nidaamka Maareynta Waraaqaha")
 st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")
 
 # ===== FILES =====
@@ -126,7 +129,7 @@ else:
                 df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
 
             df_all.to_csv(waraaqaha_file, index=False)
-            st.success("✅ Waraaqaha waa la diray")  # Fariinta cusub
+            st.success("✅ Waraaqaha waa la diray")
             st.experimental_rerun()
         else:
             st.warning("Fadlan ugu yaraan hal waraaq dooro.")

@@ -83,7 +83,10 @@ else:
     if os.path.exists(waraaqaha_file):
         df_all = pd.read_csv(waraaqaha_file)
     else:
-        df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FilePath"])
+        df_all = pd.DataFrame(columns=[
+            "Ka socota", "Loogu talagalay", "Cinwaanka",
+            "Qoraalka", "Taariikh", "File", "FileData"
+        ])
 
     # ===== DIR WARAQ =====
     st.subheader("📤 Dir Waraaq Cusub")
@@ -91,10 +94,16 @@ else:
     with col1:
         cinwaanka = st.text_input("Cinwaanka Waraaqda")
     with col2:
-        loo_dirayo = st.selectbox("Loogu talagalay:", [w for w in waaxyo_passwords if w != waaxda_user])
+        loo_dirayo = st.selectbox(
+            "Loogu talagalay:",
+            [w for w in waaxyo_passwords if w != waaxda_user]
+        )
 
     farriin = st.text_area("Objective")
-    uploaded_file = st.file_uploader("Lifaaq (ikhtiyaari)", type=["pdf", "docx", "xlsx", "csv"])
+    uploaded_file = st.file_uploader(
+        "Lifaaq (ikhtiyaari)",
+        type=["pdf", "docx", "xlsx", "csv"]
+    )
 
     file_name, file_path = "", ""
     if uploaded_file:
@@ -111,7 +120,7 @@ else:
             "Qoraalka": farriin,
             "Taariikh": datetime.today().strftime("%Y-%m-%d"),
             "File": file_name,
-            "FilePath": file_path
+            "FileData": file_path
         }
         df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
         df_all.to_csv(waraaqaha_file, index=False)
@@ -120,46 +129,15 @@ else:
     # ===== WARAQAHA LA HELAY =====
     st.subheader("📥 Waraaqaha La Helay")
     df_view = df_all if is_admin else df_all[df_all["Loogu talagalay"] == waaxda_user]
-    st.dataframe(df_view.drop(columns=["FilePath"], errors='ignore'))
+    st.dataframe(df_view.drop(columns=["FileData"], errors="ignore"))
 
-    # ===== DOWNLOADS =====
+    # ===== DOWNLOAD ORIGINAL FILE =====
     if not df_view.empty:
-        # Word
-        doc = Document()
-        doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
         for _, row in df_view.iterrows():
-            doc.add_paragraph(f"Taariikh: {row['Taariikh']}")
-            doc.add_paragraph(f"Ka Socota: {row['Ka socota']}")
-            doc.add_paragraph(f"Cinwaan: {row['Cinwaanka']}", style='List Bullet')
-            doc.add_paragraph(str(row['Qoraalka']) if pd.notna(row['Qoraalka']) else "(Qoraal ma jiro)")
-            if pd.notna(row.get("File")) and row["File"]:
-                doc.add_paragraph(f"Lifaaq: {row['File']}")
-            doc.add_paragraph("---")
-        word_buffer = io.BytesIO()
-        doc.save(word_buffer)
-        st.download_button(
-            label="📄 Soo Degso (Word)",
-            data=word_buffer.getvalue(),
-            file_name="waraaqaha.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
-
-        # Excel
-        excel_buffer = io.BytesIO()
-        df_view.drop(columns=["FilePath"], errors='ignore').to_excel(excel_buffer, index=False)
-        st.download_button(
-            label="📈 Soo Degso (Excel)",
-            data=excel_buffer.getvalue(),
-            file_name="waraaqaha.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-        # Download original file
-        for _, row in df_view.iterrows():
-            if pd.notna(row.get("FilePath")) and row["FilePath"]:
-                with open(row["FilePath"], "rb") as f:
+            if pd.notna(row["FileData"]) and row["FileData"] != "":
+                with open(row["FileData"], "rb") as f:
                     st.download_button(
-                        label=f"📎 Soo Degso {row['File']}",
+                        label=f"📎 Soo degso {row['File']}",
                         data=f,
                         file_name=row["File"]
                     )
@@ -167,9 +145,9 @@ else:
     # ===== CHANGE PASSWORD =====
     if not is_admin:
         st.subheader("🔒 Bedel Password-ka")
-        old_pass = st.text_input("Password-kii Hore", type="password", key="oldpass")
-        new_pass = st.text_input("Password Cusub", type="password", key="newpass")
-        confirm_pass = st.text_input("Mar kale geli password-ka cusub", type="password", key="confpass")
+        old_pass = st.text_input("Password-kii Hore", type="password")
+        new_pass = st.text_input("Password Cusub", type="password")
+        confirm_pass = st.text_input("Mar kale geli password-ka cusub", type="password")
 
         if st.button("📅 Badal Password-ka"):
             if old_pass != waaxyo_passwords.get(waaxda_user):
@@ -179,7 +157,9 @@ else:
             elif len(new_pass) < 6:
                 st.warning("Password-ka waa inuu ka bato 6 xaraf.")
             else:
-                df_passwords.loc[df_passwords.waaxda == waaxda_user, "password"] = new_pass
+                df_passwords.loc[
+                    df_passwords.waaxda == waaxda_user, "password"
+                ] = new_pass
                 df_passwords.to_csv(passwords_file, index=False)
                 st.success("✅ Password-ka waa la badalay si guul ah")
 

@@ -100,14 +100,14 @@ else:
     farriin = st.text_area("Objective")
     uploaded_file = st.file_uploader("Lifaaq (ikhtiyaari)", type=["pdf", "docx", "xlsx", "csv"])
 
-    file_name, file_path = "", ""
-    if uploaded_file:
-        file_name = uploaded_file.name
-        file_path = os.path.join(uploads_dir, file_name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.read())
-
     if st.button("📨 Dir"):
+        file_name, file_path = "", ""
+        if uploaded_file is not None:
+            file_name = uploaded_file.name
+            file_path = os.path.join(uploads_dir, file_name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())  # hubi in faylka la keydiyo
+        # Create new row
         new_row = {
             "Ka socota": waaxda_user,
             "Loogu talagalay": loo_dirayo,
@@ -121,6 +121,7 @@ else:
         df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
         df_all.to_csv(waraaqaha_file, index=False)
         st.success("Waraaqda waa la diray ✅")
+        st.experimental_rerun()  # cusboonaysii UI-ga
 
     # ===== WARAQAHA LA HELAY + NOTIFICATIONS =====
     st.subheader("📥 Waraaqaha La Helay")

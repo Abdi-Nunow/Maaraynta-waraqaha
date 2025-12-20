@@ -135,8 +135,8 @@ else:
             if r["filepath"] and os.path.exists(r["filepath"]):
                 with open(r["filepath"], "rb") as f:
                     st.download_button(
-                        f"📎 Soo degso {r['file']}",
-                        f,
+                        label=f"📎 Soo degso {r['file']}",
+                        data=f,
                         file_name=r["file"],
                         key=f"inbox_dl_{r['id']}"
                     )
@@ -157,8 +157,8 @@ else:
             if r["filepath"] and os.path.exists(r["filepath"]):
                 with open(r["filepath"], "rb") as f:
                     st.download_button(
-                        f"📎 Soo degso {r['file']}",
-                        f,
+                        label=f"📎 Soo degso {r['file']}",
+                        data=f,
                         file_name=r["file"],
                         key=f"sent_dl_{r['id']}"
                     )
@@ -179,10 +179,10 @@ else:
             if r["filepath"] and os.path.exists(r["filepath"]):
                 with open(r["filepath"], "rb") as f:
                     st.download_button(
-                        f"📎 Soo degso {r['file']}",
-                        f,
+                        label=f"📎 Soo degso {r['file']}",
+                        data=f,
                         file_name=r["file"],
-                        key=f"arch_dl_{r['id']}"
+                        key=f"archive_dl_{r['id']}"
                     )
 
     # ---------- LOGOUT ----------

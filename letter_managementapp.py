@@ -10,11 +10,11 @@ st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 st.title("📁 Nidaamka Maareynta Waraaqaha")
 st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")
 
-# ===== FILES =====
+# ===== FILE PATHS =====
 passwords_file = "passwords.csv"
 waraaqaha_file = "waraaqaha.csv"
-uploads_dir = "uploads"
-os.makedirs(uploads_dir, exist_ok=True)
+storage_dir = "storage"
+os.makedirs(storage_dir, exist_ok=True)
 
 # ===== DEFAULT PASSWORDS =====
 if not os.path.exists(passwords_file):
@@ -38,11 +38,11 @@ if not os.path.exists(passwords_file):
 df_passwords = pd.read_csv(passwords_file)
 waaxyo_passwords = dict(zip(df_passwords.waaxda, df_passwords.password))
 
-# ===== ADMIN CREDENTIALS =====
+# ===== ADMIN =====
 admin_user = "Admin"
 admin_password = "Admin2100"
 
-# ===== SESSION STATE =====
+# ===== SESSION =====
 if "waaxda_user" not in st.session_state:
     st.session_state.waaxda_user = None
     st.session_state.is_admin = False
@@ -79,7 +79,7 @@ else:
     is_admin = st.session_state.is_admin
     st.success(f"👋 Ku soo dhawoow {waaxda_user}")
 
-    # ===== LOAD WARAQAHA =====
+    # ===== LOAD LETTERS =====
     if os.path.exists(waraaqaha_file):
         df_all = pd.read_csv(waraaqaha_file)
     else:
@@ -88,7 +88,7 @@ else:
             "Qoraalka", "Taariikh", "File", "FileData"
         ])
 
-    # ===== DIR WARAQ =====
+    # ===== SEND LETTER =====
     st.subheader("📤 Dir Waraaq Cusub")
     col1, col2 = st.columns(2)
     with col1:
@@ -100,15 +100,18 @@ else:
         )
 
     farriin = st.text_area("Objective")
-    uploaded_file = st.file_uploader(
-        "Lifaaq (ikhtiyaari)",
-        type=["pdf", "docx", "xlsx", "csv"]
-    )
+    uploaded_file = st.file_uploader("Lifaaq (ikhtiyaari)", type=["pdf", "docx", "xlsx", "csv"])
 
     file_name, file_path = "", ""
     if uploaded_file:
         file_name = uploaded_file.name
-        file_path = os.path.join(uploads_dir, file_name)
+        waax_folder = os.path.join(storage_dir, loo_dirayo)
+        os.makedirs(waax_folder, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_name = f"{timestamp}_{file_name}"
+        file_path = os.path.join(waax_folder, safe_name)
+
         with open(file_path, "wb") as f:
             f.write(uploaded_file.read())
 
@@ -126,21 +129,22 @@ else:
         df_all.to_csv(waraaqaha_file, index=False)
         st.success("Waraaqda waa la diray ✅")
 
-    # ===== WARAQAHA LA HELAY =====
+    # ===== VIEW LETTERS =====
     st.subheader("📥 Waraaqaha La Helay")
     df_view = df_all if is_admin else df_all[df_all["Loogu talagalay"] == waaxda_user]
     st.dataframe(df_view.drop(columns=["FileData"], errors="ignore"))
 
-    # ===== DOWNLOAD ORIGINAL FILE =====
+    # ===== DOWNLOAD FILES =====
     if not df_view.empty:
         for _, row in df_view.iterrows():
             if pd.notna(row["FileData"]) and row["FileData"] != "":
-                with open(row["FileData"], "rb") as f:
-                    st.download_button(
-                        label=f"📎 Soo degso {row['File']}",
-                        data=f,
-                        file_name=row["File"]
-                    )
+                if os.path.exists(row["FileData"]):
+                    with open(row["FileData"], "rb") as f:
+                        st.download_button(
+                            label=f"📎 Soo degso {row['File']}",
+                            data=f,
+                            file_name=row["File"]
+                        )
 
     # ===== CHANGE PASSWORD =====
     if not is_admin:
@@ -157,9 +161,7 @@ else:
             elif len(new_pass) < 6:
                 st.warning("Password-ka waa inuu ka bato 6 xaraf.")
             else:
-                df_passwords.loc[
-                    df_passwords.waaxda == waaxda_user, "password"
-                ] = new_pass
+                df_passwords.loc[df_passwords.waaxda == waaxda_user, "password"] = new_pass
                 df_passwords.to_csv(passwords_file, index=False)
                 st.success("✅ Password-ka waa la badalay si guul ah")
 

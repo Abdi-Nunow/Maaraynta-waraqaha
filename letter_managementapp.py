@@ -126,12 +126,12 @@ else:
                 df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
 
             df_all.to_csv(waraaqaha_file, index=False)
-            st.success("Waraaqaha waa la diray ✅")
+            st.success("✅ Waraaqaha waa la diray")  # Fariinta cusub
             st.experimental_rerun()
         else:
             st.warning("Fadlan ugu yaraan hal waraaq dooro.")
 
-    # ===== WARAQAHA LA HELAY + NOTIFICATIONS =====
+    # ===== WARAQAHA LA HELAY =====
     st.subheader("📥 Waraaqaha La Helay")
     df_view = df_all if is_admin else df_all[df_all["Loogu talagalay"] == waaxda_user]
     st.dataframe(df_view.drop(columns=["FilePath", "Seen"], errors='ignore'))
@@ -145,7 +145,17 @@ else:
 
     # ===== DOWNLOADS =====
     if not df_view.empty:
-        # Word
+        for i, row in df_view.iterrows():
+            if pd.notna(row.get("FilePath")) and row["FilePath"]:
+                with open(row["FilePath"], "rb") as f:
+                    st.download_button(
+                        label=f"📎 Soo Degso {row['File']}",
+                        data=f,
+                        file_name=row["File"],
+                        key=f"download_{i}"
+                    )
+
+        # Word export
         doc = Document()
         doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
         for _, row in df_view.iterrows():
@@ -166,7 +176,7 @@ else:
             key="word_download"
         )
 
-        # Excel
+        # Excel export
         excel_buffer = io.BytesIO()
         df_view.drop(columns=["FilePath", "Seen"], errors='ignore').to_excel(excel_buffer, index=False)
         st.download_button(
@@ -176,17 +186,6 @@ else:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="excel_download"
         )
-
-        # Download original files
-        for i, row in df_view.iterrows():
-            if pd.notna(row.get("FilePath")) and row["FilePath"]:
-                with open(row["FilePath"], "rb") as f:
-                    st.download_button(
-                        label=f"📎 Soo Degso {row['File']}",
-                        data=f,
-                        file_name=row["File"],
-                        key=f"download_{i}"
-                    )
 
     # ===== CHANGE PASSWORD =====
     if not is_admin:

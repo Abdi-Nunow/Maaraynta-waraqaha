@@ -79,7 +79,7 @@ else:
         df = pd.DataFrame(columns=[
             "id", "from", "to", "title", "content",
             "date", "file", "filepath",
-            "box", "archived_by"
+            "archived_by"
         ])
 
     # ---------- SEND LETTER ----------
@@ -98,12 +98,14 @@ else:
         folder = os.path.join(storage_dir, to)
         os.makedirs(folder, exist_ok=True)
         fname = file.name
-        fpath = os.path.join(folder, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{fname}")
+        fpath = os.path.join(
+            folder, f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{fname}"
+        )
         with open(fpath, "wb") as f:
             f.write(file.read())
 
     if st.button("📨 Dir"):
-        df = pd.concat([df, pd.DataFrame([{
+        new_row = {
             "id": str(uuid.uuid4()),
             "from": user,
             "to": to,
@@ -112,24 +114,36 @@ else:
             "date": datetime.today().strftime("%Y-%m-%d"),
             "file": fname,
             "filepath": fpath,
-            "box": "Inbox",
             "archived_by": ""
-        }])], ignore_index=True)
+        }
+        df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
         df.to_csv(letters_file, index=False)
         st.success("Waraaqda waa la diray")
         st.experimental_rerun()
 
     # ================= TABS =================
-    inbox_tab, sent_tab, archive_tab = st.tabs(["📥 Inbox", "📤 Sent", "🗂 Archive"])
+    inbox_tab, sent_tab, archive_tab = st.tabs(
+        ["📥 Inbox", "📤 Sent", "🗂 Archive"]
+    )
 
     # ---------- INBOX ----------
     with inbox_tab:
-        inbox = df if is_admin else df[(df["to"] == user) & (df["box"] == "Inbox")]
+        inbox = df if is_admin else df[(df["to"] == user) & (df["archived_by"] == "")]
         st.dataframe(inbox)
 
+        for _, r in inbox.iterrows():
+            if r["filepath"] and os.path.exists(r["filepath"]):
+                with open(r["filepath"], "rb") as f:
+                    st.download_button(
+                        f"📎 Soo degso {r['file']}",
+                        f,
+                        file_name=r["file"],
+                        key=f"inbox_dl_{r['id']}"
+                    )
+
         if not inbox.empty:
-            sel = st.selectbox("Dooro warqad si aad u archive-gareyso:", inbox["id"])
-            if st.button("Archive Inbox"):
+            sel = st.selectbox("Archive Inbox:", inbox["id"], key="arch_in")
+            if st.button("Archive"):
                 df.loc[df["id"] == sel, "archived_by"] = user
                 df.to_csv(letters_file, index=False)
                 st.experimental_rerun()
@@ -139,8 +153,18 @@ else:
         sent = df if is_admin else df[df["from"] == user]
         st.dataframe(sent)
 
+        for _, r in sent.iterrows():
+            if r["filepath"] and os.path.exists(r["filepath"]):
+                with open(r["filepath"], "rb") as f:
+                    st.download_button(
+                        f"📎 Soo degso {r['file']}",
+                        f,
+                        file_name=r["file"],
+                        key=f"sent_dl_{r['id']}"
+                    )
+
         if not sent.empty:
-            sel = st.selectbox("Dooro warqad Sent si aad u archive-gareyso:", sent["id"])
+            sel = st.selectbox("Archive Sent:", sent["id"], key="arch_sent")
             if st.button("Archive Sent"):
                 df.loc[df["id"] == sel, "archived_by"] = user
                 df.to_csv(letters_file, index=False)
@@ -151,16 +175,15 @@ else:
         archive = df if is_admin else df[df["archived_by"] == user]
         st.dataframe(archive)
 
-    # ---------- DOWNLOAD ----------
-    st.subheader("📎 Soo Degso Lifaaq")
-    for _, r in df.iterrows():
-        if r["filepath"] and os.path.exists(r["filepath"]):
-            with open(r["filepath"], "rb") as f:
-                st.download_button(
-                    f"Soo degso {r['file']}",
-                    f,
-                    file_name=r["file"]
-                )
+        for _, r in archive.iterrows():
+            if r["filepath"] and os.path.exists(r["filepath"]):
+                with open(r["filepath"], "rb") as f:
+                    st.download_button(
+                        f"📎 Soo degso {r['file']}",
+                        f,
+                        file_name=r["file"],
+                        key=f"arch_dl_{r['id']}"
+                    )
 
     # ---------- LOGOUT ----------
     if st.button("🚪 Bixi"):

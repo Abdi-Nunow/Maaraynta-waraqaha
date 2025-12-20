@@ -30,7 +30,9 @@ if not os.path.exists(passwords_file):
         "Waaxda ICT": "Admin2100",
         "Waaxda Public Relation": "Admin2100",
         "Waaxda HRM": "Admin2100",
-        "Waaxda Wacyigalinta": "Admin2100"
+        "Waaxda Wacyigalinta": "Admin2100",
+        "Arkiviya-1": "Admin2100",
+        "Arkiviya-2": "Admin2100"
     }
     pd.DataFrame(default_passwords.items(), columns=["waaxda", "password"]).to_csv(passwords_file, index=False)
 
@@ -106,8 +108,7 @@ else:
             file_name = uploaded_file.name
             file_path = os.path.join(uploads_dir, file_name)
             with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())  # hubi in faylka la keydiyo
-        # Create new row
+                f.write(uploaded_file.getbuffer())
         new_row = {
             "Ka socota": waaxda_user,
             "Loogu talagalay": loo_dirayo,
@@ -121,19 +122,17 @@ else:
         df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
         df_all.to_csv(waraaqaha_file, index=False)
         st.success("Waraaqda waa la diray ✅")
-        st.experimental_rerun()  # cusboonaysii UI-ga
+        st.experimental_rerun()
 
     # ===== WARAQAHA LA HELAY + NOTIFICATIONS =====
     st.subheader("📥 Waraaqaha La Helay")
     df_view = df_all if is_admin else df_all[df_all["Loogu talagalay"] == waaxda_user]
     st.dataframe(df_view.drop(columns=["FilePath", "Seen"], errors='ignore'))
 
-    # Notification: warqadaha aan la arkin
     if not is_admin:
         new_letters = df_view[df_view["Seen"] == 0]
         if not new_letters.empty:
             st.info(f"📬 Waxaad heshay {len(new_letters)} waraaq cusub!")
-            # Calaamad: calaamadee seen=1
             df_all.loc[new_letters.index, "Seen"] = 1
             df_all.to_csv(waraaqaha_file, index=False)
 

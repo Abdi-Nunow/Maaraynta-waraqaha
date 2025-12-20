@@ -3,7 +3,6 @@ import pandas as pd
 import io
 from datetime import datetime
 from docx import Document
-import base64
 import os
 
 # ===== PAGE CONFIG =====
@@ -14,6 +13,8 @@ st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga a
 # ===== FILES =====
 passwords_file = "passwords.csv"
 waraaqaha_file = "waraaqaha.csv"
+uploads_dir = "uploads"
+os.makedirs(uploads_dir, exist_ok=True)
 
 # ===== DEFAULT PASSWORDS =====
 if not os.path.exists(passwords_file):
@@ -82,7 +83,7 @@ else:
     if os.path.exists(waraaqaha_file):
         df_all = pd.read_csv(waraaqaha_file)
     else:
-        df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FileData"])
+        df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FilePath"])
 
     # ===== DIR WARAQ =====
     st.subheader("📤 Dir Waraaq Cusub")
@@ -95,10 +96,12 @@ else:
     farriin = st.text_area("Objective")
     uploaded_file = st.file_uploader("Lifaaq (ikhtiyaari)", type=["pdf", "docx", "xlsx", "csv"])
 
-    file_name, file_data = "", ""
+    file_name, file_path = "", ""
     if uploaded_file:
         file_name = uploaded_file.name
-        file_data = base64.b64encode(uploaded_file.read()).decode()
+        file_path = os.path.join(uploads_dir, file_name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.read())
 
     if st.button("📨 Dir"):
         new_row = {
@@ -108,7 +111,7 @@ else:
             "Qoraalka": farriin,
             "Taariikh": datetime.today().strftime("%Y-%m-%d"),
             "File": file_name,
-            "FileData": file_data
+            "FilePath": file_path
         }
         df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
         df_all.to_csv(waraaqaha_file, index=False)
@@ -117,7 +120,7 @@ else:
     # ===== WARAQAHA LA HELAY =====
     st.subheader("📥 Waraaqaha La Helay")
     df_view = df_all if is_admin else df_all[df_all["Loogu talagalay"] == waaxda_user]
-    st.dataframe(df_view)
+    st.dataframe(df_view.drop(columns=["FilePath"], errors='ignore'))
 
     # ===== DOWNLOADS =====
     if not df_view.empty:
@@ -143,13 +146,23 @@ else:
 
         # Excel
         excel_buffer = io.BytesIO()
-        df_view.drop(columns=["FileData"], errors='ignore').to_excel(excel_buffer, index=False)
+        df_view.drop(columns=["FilePath"], errors='ignore').to_excel(excel_buffer, index=False)
         st.download_button(
             label="📈 Soo Degso (Excel)",
             data=excel_buffer.getvalue(),
             file_name="waraaqaha.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        # Download original file
+        for _, row in df_view.iterrows():
+            if pd.notna(row.get("FilePath")) and row["FilePath"]:
+                with open(row["FilePath"], "rb") as f:
+                    st.download_button(
+                        label=f"📎 Soo Degso {row['File']}",
+                        data=f,
+                        file_name=row["File"]
+                    )
 
     # ===== CHANGE PASSWORD =====
     if not is_admin:

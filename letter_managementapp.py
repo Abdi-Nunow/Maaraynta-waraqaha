@@ -87,7 +87,6 @@ else:
     else:
         df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FilePath", "Seen"])
 
-    # Hubi Seen column
     if "Seen" not in df_all.columns:
         df_all["Seen"] = 0
 
@@ -100,29 +99,37 @@ else:
         loo_dirayo = st.selectbox("Loogu talagalay:", [w for w in waaxyo_passwords if w != waaxda_user])
 
     farriin = st.text_area("Objective")
-    uploaded_file = st.file_uploader("Lifaaq (ikhtiyaari)", type=["pdf", "docx", "xlsx", "csv"])
+    uploaded_files = st.file_uploader(
+        "Upload waraaqo (hal ama in ka badan)", 
+        type=["pdf","docx","xlsx","csv","jpg","png"], 
+        accept_multiple_files=True
+    )
 
     if st.button("📨 Dir"):
-        file_name, file_path = "", ""
-        if uploaded_file is not None:
-            file_name = uploaded_file.name
-            file_path = os.path.join(uploads_dir, file_name)
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-        new_row = {
-            "Ka socota": waaxda_user,
-            "Loogu talagalay": loo_dirayo,
-            "Cinwaanka": cinwaanka,
-            "Qoraalka": farriin,
-            "Taariikh": datetime.today().strftime("%Y-%m-%d"),
-            "File": file_name,
-            "FilePath": file_path,
-            "Seen": 0
-        }
-        df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
-        df_all.to_csv(waraaqaha_file, index=False)
-        st.success("Waraaqda waa la diray ✅")
-        st.experimental_rerun()
+        if uploaded_files:
+            for uploaded_file in uploaded_files:
+                file_name = uploaded_file.name
+                file_path = os.path.join(uploads_dir, file_name)
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+
+                new_row = {
+                    "Ka socota": waaxda_user,
+                    "Loogu talagalay": loo_dirayo,
+                    "Cinwaanka": cinwaanka,
+                    "Qoraalka": farriin,
+                    "Taariikh": datetime.today().strftime("%Y-%m-%d"),
+                    "File": file_name,
+                    "FilePath": file_path,
+                    "Seen": 0
+                }
+                df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
+
+            df_all.to_csv(waraaqaha_file, index=False)
+            st.success("Waraaqaha waa la diray ✅")
+            st.experimental_rerun()
+        else:
+            st.warning("Fadlan ugu yaraan hal waraaq dooro.")
 
     # ===== WARAQAHA LA HELAY + NOTIFICATIONS =====
     st.subheader("📥 Waraaqaha La Helay")

@@ -9,7 +9,7 @@ import os
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 
 # ===== LOGO =====
-st.image("uploads/images.png", width=250)
+st.image("images.png", width=250)
 st.markdown("## 📁 Nidaamka Maareynta Waraaqaha")
 st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")
 

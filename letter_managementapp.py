@@ -7,11 +7,11 @@ import base64
 import os
 
 # ================= PAGE CONFIG =================
-st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
+st.set_page_config(page_title="Maaraynta Waraaqaha", layout="centre")
 
 # ================= LOGO =================
 if os.path.exists("images.png"):
-    st.image("images.png", width=220)
+    st.image("images.png", width=180)
 
 st.markdown("## 📁 Nidaamka Maareynta Waraaqaha")
 st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")

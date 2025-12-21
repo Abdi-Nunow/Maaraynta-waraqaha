@@ -7,7 +7,7 @@ import base64
 import os
 
 # ================= PAGE CONFIG =================
-st.set_page_config(page_title="Maaraynta Waraaqaha", layout="centere")
+st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 
 # ================= LOGO =================
 if os.path.exists("images.png"):

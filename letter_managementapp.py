@@ -3,213 +3,171 @@ import pandas as pd
 import io
 from datetime import datetime
 from docx import Document
+import base64
 import os
 
-# ===== PAGE CONFIG =====
+# ================= PAGE CONFIG =================
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 
-# ===== LOGO =====
-st.image("images.png", width=250)
+# ================= LOGO =================
+if os.path.exists("images.png"):
+    st.image("images.png", width=220)
+
 st.markdown("## 📁 Nidaamka Maareynta Waraaqaha")
 st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")
 
-# ===== FILES =====
+# ================= FILES =================
 passwords_file = "passwords.csv"
 waraaqaha_file = "waraaqaha.csv"
-uploads_dir = "uploads"
-os.makedirs(uploads_dir, exist_ok=True)
 
-# ===== DEFAULT PASSWORDS =====
+# ================= DEFAULT WAAXYO + PASSWORDS =================
 if not os.path.exists(passwords_file):
     default_passwords = {
         "Xafiiska Wasiirka": "Admin2100",
         "Wasiir Ku-xigeenka 1aad": "Admin2100",
         "Wasiir Ku-xigeenka 2aad": "Admin2100",
         "Wasiir Ku-xigeenka 3aad": "Admin2100",
-        "Secratory": "Admin2100",
-        "Waaxda Xadaynta": "Admin2100",
+        "Secretory": "Admin2100",
         "Waaxda Auditka": "Admin2100",
-        "Waaxda Adeega Shacabka": "Admin2100",
         "Waaxda ICT": "Admin2100",
-        "Waaxda Public Relation": "Admin2100",
         "Waaxda HRM": "Admin2100",
-        "Waaxda Wacyigalinta": "Admin2100",
+        "Waaxda Public Relation": "Admin2100",
+        "Waaxda Adeega Shacabka": "Admin2100",
         "Arkiviya-1": "Admin2100",
         "Arkiviya-2": "Admin2100"
     }
     pd.DataFrame(default_passwords.items(), columns=["waaxda", "password"]).to_csv(passwords_file, index=False)
 
-# ===== LOAD PASSWORDS =====
 df_passwords = pd.read_csv(passwords_file)
 waaxyo_passwords = dict(zip(df_passwords.waaxda, df_passwords.password))
 
-# ===== ADMIN CREDENTIALS =====
-admin_user = "Admin"
-admin_password = "Admin2100"
+# ================= ADMIN =================
+ADMIN_USER = "Admin"
+ADMIN_PASS = "Admin2100"
 
-# ===== SESSION STATE =====
-if "waaxda_user" not in st.session_state:
-    st.session_state.waaxda_user = None
+# ================= SESSION =================
+if "user" not in st.session_state:
+    st.session_state.user = None
     st.session_state.is_admin = False
 
-# ===== LOGIN =====
-if st.session_state.waaxda_user is None:
-    st.subheader("🔐 Fadlan gal nidaamka")
-    nooca = st.radio("Nooca isticmaalaha:", ["Waax", "Admin"])
+# ================= LOGIN =================
+if st.session_state.user is None:
+    st.subheader("🔐 Login")
+    login_type = st.radio("Nooca isticmaalaha", ["Waax", "Admin"])
 
-    if nooca == "Waax":
-        waax_user = st.selectbox("Waaxda:", list(waaxyo_passwords.keys()))
-        password = st.text_input("Password", type="password")
-        if st.button("✅ Gali"):
-            if password == waaxyo_passwords.get(waax_user):
-                st.session_state.waaxda_user = waax_user
-                st.session_state.is_admin = False
+    if login_type == "Waax":
+        waax = st.selectbox("Dooro Waaxda", list(waaxyo_passwords.keys()))
+        pwd = st.text_input("Password", type="password")
+        if st.button("Gali"):
+            if pwd == waaxyo_passwords.get(waax):
+                st.session_state.user = waax
                 st.experimental_rerun()
             else:
-                st.error("Password-ka waa khaldanyahay ❌")
+                st.error("Password khaldan ❌")
+
     else:
-        admin_input = st.text_input("Admin username")
-        admin_pass = st.text_input("Admin password", type="password")
-        if st.button("✅ Gali"):
-            if admin_input == admin_user and admin_pass == admin_password:
-                st.session_state.waaxda_user = "Admin"
+        u = st.text_input("Admin Username")
+        p = st.text_input("Admin Password", type="password")
+        if st.button("Gali"):
+            if u == ADMIN_USER and p == ADMIN_PASS:
+                st.session_state.user = "Admin"
                 st.session_state.is_admin = True
                 st.experimental_rerun()
             else:
-                st.error("Xogta Admin waa khaldantahay ❌")
+                st.error("Admin login khaldan ❌")
 
-# ===== MAIN APP =====
+# ================= MAIN APP =================
 else:
-    waaxda_user = st.session_state.waaxda_user
+    user = st.session_state.user
     is_admin = st.session_state.is_admin
-    st.success(f"👋 Ku soo dhawoow {waaxda_user}")
+    st.success(f"Ku soo dhawoow: {user}")
 
-    # ===== LOAD WARAQAHA =====
     if os.path.exists(waraaqaha_file):
-        df_all = pd.read_csv(waraaqaha_file)
+        df = pd.read_csv(waraaqaha_file)
     else:
-        df_all = pd.DataFrame(columns=["Ka socota", "Loogu talagalay", "Cinwaanka", "Qoraalka", "Taariikh", "File", "FilePath", "Seen"])
+        df = pd.DataFrame(columns=[
+            "Ka Socota", "Loogu Talagalay", "Cinwaan",
+            "Qoraal", "Taariikh", "Diary", "File", "FileData"
+        ])
 
-    if "Seen" not in df_all.columns:
-        df_all["Seen"] = 0
-
-    # ===== DIR WARAQ =====
-    st.subheader("📤 Dir Waraaq Cusub")
+    # ================= SEND LETTER =================
+    st.subheader("📤 Dir Waraaq")
     col1, col2 = st.columns(2)
+
     with col1:
-        cinwaanka = st.text_input("Cinwaanka Waraaqda")
+        cinwaan = st.text_input("Cinwaanka")
     with col2:
-        loo_dirayo = st.selectbox("Loogu talagalay:", [w for w in waaxyo_passwords if w != waaxda_user])
+        loo = st.selectbox(
+            "Loogu Talagalay",
+            [w for w in waaxyo_passwords.keys() if w != user]
+        )
 
-    farriin = st.text_area("Objective")
-    uploaded_files = st.file_uploader(
-        "Upload waraaqo (hal ama in ka badan)", 
-        type=["pdf","docx","xlsx","csv","jpg","png"], 
-        accept_multiple_files=True
-    )
+    qoraal = st.text_area("Qoraalka Waraaqda")
+    file = st.file_uploader("Lifaaq (ikhtiyaari)", type=["pdf", "docx", "xlsx"])
 
-    if st.button("📨 Dir"):
-        if uploaded_files:
-            for uploaded_file in uploaded_files:
-                file_name = uploaded_file.name
-                file_path = os.path.join(uploads_dir, file_name)
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+    fname, fdata = "", ""
+    if file:
+        fname = file.name
+        fdata = base64.b64encode(file.read()).decode()
 
-                new_row = {
-                    "Ka socota": waaxda_user,
-                    "Loogu talagalay": loo_dirayo,
-                    "Cinwaanka": cinwaanka,
-                    "Qoraalka": farriin,
-                    "Taariikh": datetime.today().strftime("%Y-%m-%d"),
-                    "File": file_name,
-                    "FilePath": file_path,
-                    "Seen": 0
-                }
-                df_all = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
+    if st.button("📨 Dir Waraaq"):
+        diary_no = f"DR-{len(df)+1:05d}"
+        new = {
+            "Ka Socota": user,
+            "Loogu Talagalay": loo,
+            "Cinwaan": cinwaan,
+            "Qoraal": qoraal,
+            "Taariikh": datetime.today().strftime("%Y-%m-%d"),
+            "Diary": diary_no,
+            "File": fname,
+            "FileData": fdata
+        }
+        df = pd.concat([df, pd.DataFrame([new])], ignore_index=True)
+        df.to_csv(waraaqaha_file, index=False)
+        st.success(f"✅ Waraaqda waa la diray | Diary: {diary_no}")
 
-            df_all.to_csv(waraaqaha_file, index=False)
-            st.success("✅ Waraaqaha waa la diray")
-            st.experimental_rerun()
-        else:
-            st.warning("Fadlan ugu yaraan hal waraaq dooro.")
+    # ================= VIEW LETTERS =================
+    st.subheader("📥 Waraaqaha")
+    view_df = df if is_admin else df[df["Loogu Talagalay"] == user]
+    st.dataframe(view_df.drop(columns=["FileData"], errors="ignore"))
 
-    # ===== WARAQAHA LA HELAY =====
-    st.subheader("📥 Waraaqaha La Helay")
-    df_view = df_all if is_admin else df_all[df_all["Loogu talagalay"] == waaxda_user]
-    st.dataframe(df_view.drop(columns=["FilePath", "Seen"], errors='ignore'))
-
-    if not is_admin:
-        new_letters = df_view[df_view["Seen"] == 0]
-        if not new_letters.empty:
-            st.info(f"📬 Waxaad heshay {len(new_letters)} waraaq cusub!")
-            df_all.loc[new_letters.index, "Seen"] = 1
-            df_all.to_csv(waraaqaha_file, index=False)
-
-    # ===== DOWNLOADS =====
-    if not df_view.empty:
-        for i, row in df_view.iterrows():
-            if pd.notna(row.get("FilePath")) and row["FilePath"]:
-                with open(row["FilePath"], "rb") as f:
-                    st.download_button(
-                        label=f"📎 Soo Degso {row['File']}",
-                        data=f,
-                        file_name=row["File"],
-                        key=f"download_{i}"
-                    )
-
-        # Word export
+    # ================= DOWNLOADS =================
+    if not view_df.empty:
+        # WORD
         doc = Document()
-        doc.add_heading(f"Waraaqaha {'dhammaan waaxyaha' if is_admin else 'loo diray ' + waaxda_user}", 0)
-        for _, row in df_view.iterrows():
-            doc.add_paragraph(f"Taariikh: {row['Taariikh']}")
-            doc.add_paragraph(f"Ka Socota: {row['Ka socota']}")
-            doc.add_paragraph(f"Cinwaan: {row['Cinwaanka']}", style='List Bullet')
-            doc.add_paragraph(str(row['Qoraalka']) if pd.notna(row['Qoraalka']) else "(Qoraal ma jiro)")
-            if pd.notna(row.get("File")) and row["File"]:
-                doc.add_paragraph(f"Lifaaq: {row['File']}")
-            doc.add_paragraph("---")
-        word_buffer = io.BytesIO()
-        doc.save(word_buffer)
+        doc.add_heading("Waraaqaha", 0)
+        for _, r in view_df.iterrows():
+            doc.add_paragraph(f"Diary: {r['Diary']}")
+            doc.add_paragraph(f"Taariikh: {r['Taariikh']}")
+            doc.add_paragraph(f"Ka Socota: {r['Ka Socota']}")
+            doc.add_paragraph(f"Cinwaan: {r['Cinwaan']}")
+            doc.add_paragraph(r['Qoraal'])
+            doc.add_paragraph("------")
+
+        buf = io.BytesIO()
+        doc.save(buf)
+
         st.download_button(
-            label="📄 Soo Degso (Word)",
-            data=word_buffer.getvalue(),
+            "📄 Soo Degso Word",
+            data=buf.getvalue(),
             file_name="waraaqaha.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             key="word_download"
         )
 
-        # Excel export
-        excel_buffer = io.BytesIO()
-        df_view.drop(columns=["FilePath", "Seen"], errors='ignore').to_excel(excel_buffer, index=False)
+        # EXCEL
+        excel_buf = io.BytesIO()
+        view_df.drop(columns=["FileData"], errors="ignore").to_excel(excel_buf, index=False)
+
         st.download_button(
-            label="📈 Soo Degso (Excel)",
-            data=excel_buffer.getvalue(),
+            "📊 Soo Degso Excel",
+            data=excel_buf.getvalue(),
             file_name="waraaqaha.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             key="excel_download"
         )
 
-    # ===== CHANGE PASSWORD =====
-    if not is_admin:
-        st.subheader("🔒 Bedel Password-ka")
-        old_pass = st.text_input("Password-kii Hore", type="password", key="oldpass")
-        new_pass = st.text_input("Password Cusub", type="password", key="newpass")
-        confirm_pass = st.text_input("Mar kale geli password-ka cusub", type="password", key="confpass")
-
-        if st.button("📅 Badal Password-ka"):
-            if old_pass != waaxyo_passwords.get(waaxda_user):
-                st.error("Password-kii hore waa khaldan ❌")
-            elif new_pass != confirm_pass:
-                st.error("Password-yada cusub isma mid aha ❌")
-            elif len(new_pass) < 6:
-                st.warning("Password-ka waa inuu ka bato 6 xaraf.")
-            else:
-                df_passwords.loc[df_passwords.waaxda == waaxda_user, "password"] = new_pass
-                df_passwords.to_csv(passwords_file, index=False)
-                st.success("✅ Password-ka waa la badalay si guul ah")
-
-    # ===== LOGOUT =====
-    if st.button("🚪 Bixi"):
+    # ================= LOGOUT =================
+    if st.button("🚪 Logout"):
         st.session_state.clear()
         st.experimental_rerun()

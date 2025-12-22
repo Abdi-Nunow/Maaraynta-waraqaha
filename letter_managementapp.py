@@ -53,9 +53,10 @@ if st.session_state.user is None:
         if st.button("Gali"):
             if pwd == waax_passwords.get(waax):
                 st.session_state.user = waax
+                st.session_state.is_admin = False
                 st.experimental_rerun()
             else:
-                st.error("Password khaldan")
+                st.error("❌ Password khaldan")
 
     else:
         u = st.text_input("Admin Username")
@@ -67,7 +68,7 @@ if st.session_state.user is None:
                 st.session_state.is_admin = True
                 st.experimental_rerun()
             else:
-                st.error("Admin login khaldan")
+                st.error("❌ Admin login khaldan")
 
 # ================= MAIN =================
 else:
@@ -95,7 +96,7 @@ else:
     )
 
     file = st.file_uploader(
-        "Dooro warqadda rasmiga ah (PDF, Word, Excel, iwm)",
+        "Dooro warqadda rasmiga ah (PDF, Word, Excel)",
         type=["pdf", "docx", "doc", "xlsx", "xls"]
     )
 
@@ -121,7 +122,7 @@ else:
 
             st.success(f"✅ Warqaddii original-ka ahayd waa la diray | Diary: {diary}")
 
-    # ================= VIEW =================
+    # ================= VIEW LETTERS =================
     st.subheader("📥 Waraaqaha La Helay")
 
     view_df = df if is_admin else df[df["Loogu Talagalay"] == user]
@@ -138,6 +139,26 @@ else:
             file_name=row["FileName"],
             key=f"dl_{i}"
         )
+
+    # ================= CHANGE PASSWORD (WAAX) =================
+    if not is_admin:
+        st.subheader("🔒 Bedel Password-ka")
+
+        old_pass = st.text_input("Password-kii hore", type="password")
+        new_pass = st.text_input("Password cusub", type="password")
+        confirm_pass = st.text_input("Ku celi password-ka cusub", type="password")
+
+        if st.button("🔁 Bedel Password"):
+            if old_pass != waax_passwords.get(user):
+                st.error("❌ Password-kii hore waa khaldan")
+            elif new_pass != confirm_pass:
+                st.error("❌ Password-yadu isma mid aha")
+            elif len(new_pass) < 6:
+                st.warning("⚠️ Password-ka waa inuu ka bato 6 xaraf")
+            else:
+                df_pass.loc[df_pass["waaxda"] == user, "password"] = new_pass
+                df_pass.to_csv(passwords_file, index=False)
+                st.success("✅ Password-ka waa la beddelay")
 
     # ================= LOGOUT =================
     if st.button("🚪 Logout"):

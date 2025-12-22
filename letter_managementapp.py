@@ -1,49 +1,39 @@
 import streamlit as st
 import pandas as pd
-import io
-from datetime import datetime
-from docx import Document
 import base64
 import os
+from datetime import datetime
 
-# ================= PAGE CONFIG =================
+# ================= PAGE =================
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
 
-# ================= LOGO =================
 if os.path.exists("images.png"):
-    st.image("images.png", width=200)
+    st.image("images.png", width=220)
 
 st.markdown("## 📁 Nidaamka Maareynta Waraaqaha")
-st.markdown("Waxaa loogu talagalay in waaxyaha kala duwan ee xafiiska dakhliga ay isku diraan waraaqaha.")
+st.markdown("Diridda iyo helidda warqadaha rasmiga ah (original files).")
 
 # ================= FILES =================
 passwords_file = "passwords.csv"
 waraaqaha_file = "waraaqaha.csv"
 
-# ================= DEFAULT WAAXYO + PASSWORDS =================
+# ================= DEFAULT WAAXYO =================
 if not os.path.exists(passwords_file):
-    default_passwords = {
+    waaxyo = {
         "Xafiiska Wasiirka": "Admin2100",
         "Wasiir Ku-xigeenka 1aad": "Admin2100",
         "Wasiir Ku-xigeenka 2aad": "Admin2100",
-        "Wasiir Ku-xigeenka 3aad": "Admin2100",
         "Secretory": "Admin2100",
         "Waaxda Auditka": "Admin2100",
         "Waaxda ICT": "Admin2100",
         "Waaxda HRM": "Admin2100",
-        "Waaxda Public Relation": "Admin2100",
-        "Waaxda Adeega Shacabka": "Admin2100",
         "Arkiviya-1": "Admin2100",
         "Arkiviya-2": "Admin2100"
     }
-    pd.DataFrame(default_passwords.items(), columns=["waaxda", "password"]).to_csv(passwords_file, index=False)
+    pd.DataFrame(waaxyo.items(), columns=["waaxda", "password"]).to_csv(passwords_file, index=False)
 
-df_passwords = pd.read_csv(passwords_file)
-waaxyo_passwords = dict(zip(df_passwords.waaxda, df_passwords.password))
-
-# ================= ADMIN =================
-ADMIN_USER = "Admin"
-ADMIN_PASS = "Admin2100"
+df_pass = pd.read_csv(passwords_file)
+waax_passwords = dict(zip(df_pass.waaxda, df_pass.password))
 
 # ================= SESSION =================
 if "user" not in st.session_state:
@@ -53,118 +43,100 @@ if "user" not in st.session_state:
 # ================= LOGIN =================
 if st.session_state.user is None:
     st.subheader("🔐 Login")
-    login_type = st.radio("Nooca isticmaalaha", ["Waax", "Admin"])
 
-    if login_type == "Waax":
-        waax = st.selectbox("Dooro Waaxda", list(waaxyo_passwords.keys()))
+    role = st.radio("Nooca isticmaalaha", ["Waax", "Admin"])
+
+    if role == "Waax":
+        waax = st.selectbox("Dooro Waaxda", list(waax_passwords.keys()))
         pwd = st.text_input("Password", type="password")
+
         if st.button("Gali"):
-            if pwd == waaxyo_passwords.get(waax):
+            if pwd == waax_passwords.get(waax):
                 st.session_state.user = waax
                 st.experimental_rerun()
             else:
-                st.error("Password khaldan ❌")
+                st.error("Password khaldan")
 
     else:
         u = st.text_input("Admin Username")
         p = st.text_input("Admin Password", type="password")
+
         if st.button("Gali"):
-            if u == ADMIN_USER and p == ADMIN_PASS:
+            if u == "Admin" and p == "Admin2100":
                 st.session_state.user = "Admin"
                 st.session_state.is_admin = True
                 st.experimental_rerun()
             else:
-                st.error("Admin login khaldan ❌")
+                st.error("Admin login khaldan")
 
-# ================= MAIN APP =================
+# ================= MAIN =================
 else:
     user = st.session_state.user
     is_admin = st.session_state.is_admin
+
     st.success(f"Ku soo dhawoow: {user}")
 
     if os.path.exists(waraaqaha_file):
         df = pd.read_csv(waraaqaha_file)
     else:
         df = pd.DataFrame(columns=[
-            "Ka Socota", "Loogu Talagalay", "Cinwaan",
-            "Qoraal", "Taariikh", "Diary", "File", "FileData"
+            "Diary", "Ka Socota", "Loogu Talagalay",
+            "Cinwaan", "Taariikh",
+            "FileName", "FileData"
         ])
 
-    # ================= SEND LETTER =================
-    st.subheader("📤 Dir Waraaq")
-    col1, col2 = st.columns(2)
+    # ================= SEND ORIGINAL LETTER =================
+    st.subheader("📤 Dir Warqad (Original File)")
 
-    with col1:
-        cinwaan = st.text_input("Cinwaanka")
-    with col2:
-        loo = st.selectbox(
-            "Loogu Talagalay",
-            [w for w in waaxyo_passwords.keys() if w != user]
-        )
+    cinwaan = st.text_input("Cinwaanka Warqadda")
+    loo = st.selectbox(
+        "Loogu Talagalay",
+        [w for w in waax_passwords.keys() if w != user]
+    )
 
-    qoraal = st.text_area("Qoraalka Waraaqda")
-    file = st.file_uploader("Lifaaq (ikhtiyaari)", type=["pdf", "docx", "xlsx"])
+    file = st.file_uploader(
+        "Dooro warqadda rasmiga ah (PDF, Word, Excel, iwm)",
+        type=["pdf", "docx", "doc", "xlsx", "xls"]
+    )
 
-    fname, fdata = "", ""
-    if file:
-        fname = file.name
-        fdata = base64.b64encode(file.read()).decode()
+    if st.button("📨 Dir"):
+        if file is None:
+            st.error("❌ Fadlan dooro warqad")
+        else:
+            diary = f"DR-{len(df)+1:05d}"
+            encoded = base64.b64encode(file.read()).decode()
 
-    if st.button("📨 Dir Waraaq"):
-        diary_no = f"DR-{len(df)+1:05d}"
-        new = {
-            "Ka Socota": user,
-            "Loogu Talagalay": loo,
-            "Cinwaan": cinwaan,
-            "Qoraal": qoraal,
-            "Taariikh": datetime.today().strftime("%Y-%m-%d"),
-            "Diary": diary_no,
-            "File": fname,
-            "FileData": fdata
-        }
-        df = pd.concat([df, pd.DataFrame([new])], ignore_index=True)
-        df.to_csv(waraaqaha_file, index=False)
-        st.success(f"✅ Waraaqda waa la diray | Diary: {diary_no}")
+            new_row = {
+                "Diary": diary,
+                "Ka Socota": user,
+                "Loogu Talagalay": loo,
+                "Cinwaan": cinwaan,
+                "Taariikh": datetime.today().strftime("%Y-%m-%d"),
+                "FileName": file.name,
+                "FileData": encoded
+            }
 
-    # ================= VIEW LETTERS =================
-    st.subheader("📥 Waraaqaha")
+            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
+            df.to_csv(waraaqaha_file, index=False)
+
+            st.success(f"✅ Warqaddii original-ka ahayd waa la diray | Diary: {diary}")
+
+    # ================= VIEW =================
+    st.subheader("📥 Waraaqaha La Helay")
+
     view_df = df if is_admin else df[df["Loogu Talagalay"] == user]
     st.dataframe(view_df.drop(columns=["FileData"], errors="ignore"))
 
-    # ================= DOWNLOADS =================
-    if not view_df.empty:
-        # WORD
-        doc = Document()
-        doc.add_heading("Waraaqaha", 0)
-        for _, r in view_df.iterrows():
-            doc.add_paragraph(f"Diary: {r['Diary']}")
-            doc.add_paragraph(f"Taariikh: {r['Taariikh']}")
-            doc.add_paragraph(f"Ka Socota: {r['Ka Socota']}")
-            doc.add_paragraph(f"Cinwaan: {r['Cinwaan']}")
-            doc.add_paragraph(r['Qoraal'])
-            doc.add_paragraph("------")
+    # ================= DOWNLOAD ORIGINAL FILE =================
+    st.subheader("⬇️ Soo Degso Warqadda Asalka ah")
 
-        buf = io.BytesIO()
-        doc.save(buf)
-
+    for i, row in view_df.iterrows():
+        file_bytes = base64.b64decode(row["FileData"])
         st.download_button(
-            "📄 Soo Degso Word",
-            data=buf.getvalue(),
-            file_name="waraaqaha.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            key="word_download"
-        )
-
-        # EXCEL
-        excel_buf = io.BytesIO()
-        view_df.drop(columns=["FileData"], errors="ignore").to_excel(excel_buf, index=False)
-
-        st.download_button(
-            "📊 Soo Degso Excel",
-            data=excel_buf.getvalue(),
-            file_name="waraaqaha.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="excel_download"
+            label=f"⬇️ {row['FileName']} | {row['Diary']}",
+            data=file_bytes,
+            file_name=row["FileName"],
+            key=f"dl_{i}"
         )
 
     # ================= LOGOUT =================

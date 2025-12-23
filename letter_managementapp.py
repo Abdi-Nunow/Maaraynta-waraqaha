@@ -88,11 +88,19 @@ else:
             "Ka_socota", "Loogu_talagalay", "Cinwaan", "Taariikh", "Files"
         ])
 
-    # ================= 3 MAALIN KEYDIN =================
+    # ================= DATETIME CONVERSION =================
     df["Taariikh"] = pd.to_datetime(df["Taariikh"], errors="coerce")
     maanta = pd.Timestamp.today()
-    df = df[df["Taariikh"] >= (maanta - pd.Timedelta(days=3))]
-    df.to_csv(WARAQAHA_FILE, index=False)
+
+    # ================= FILTER WARAQAHA =================
+    if is_admin:
+        # Admin wuxuu arki karaa waraaqaha sanadka la soo dhaafay
+        sanad_hore = maanta - pd.DateOffset(years=1)
+        view_df = df[df["Taariikh"] >= sanad_hore]
+    else:
+        # Waaxda caadiga ah waxay arki kartaa 3 maalmood keliya
+        view_df = df[(df["Loogu_talagalay"] == user) &
+                     (df["Taariikh"] >= (maanta - pd.Timedelta(days=3)))]
 
     # ================= DIR WARAQ =================
     st.subheader("📤 Dir Waraaq")
@@ -128,7 +136,6 @@ else:
 
     # ================= VIEW WARAQAHA =================
     st.subheader("📥 Waraaqaha La Helay")
-    view_df = df if is_admin else df[df["Loogu_talagalay"] == user]
     st.dataframe(view_df[["Ka_socota", "Cinwaan", "Taariikh"]])
 
     # ================= DOWNLOAD FILES =================

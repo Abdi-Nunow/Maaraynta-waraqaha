@@ -1,8 +1,9 @@
 import streamlit as st
-import pandas as pd
+from sqlalchemy import create_engine, text
 import os
 import base64
-from datetime import datetime
+from datetime import datetime, timedelta
+import pandas as pd
 
 # ================= PAGE CONFIG =================
 st.set_page_config(page_title="Maaraynta Waraaqaha", layout="wide")
@@ -17,26 +18,45 @@ st.markdown("<h2 style='text-align:center'>📁 Nidaamka Maareynta Waraaqaha</h2
 st.markdown("<p style='text-align:center'>Is-dhaafsiga waraaqaha waaxyaha xafiiska dakhliga</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# ================= FILE PATHS =================
-WARAQAHA_FILE = "waraaqaha.csv"
-PASSWORDS_FILE = "passwords.csv"
+# ================= DATABASE CONNECTION =================
+DATABASE_URL = os.environ.get("DATABASE_URL")
+engine = create_engine(DATABASE_URL)
+
+# ================= CREATE TABLES =================
+with engine.begin() as conn:
+    conn.execute(text("""
+    CREATE TABLE IF NOT EXISTS passwords (
+        waaxda TEXT PRIMARY KEY,
+        password TEXT NOT NULL
+    )
+    """))
+
+    conn.execute(text("""
+    CREATE TABLE IF NOT EXISTS waraaqaha (
+        id SERIAL PRIMARY KEY,
+        ka_socota TEXT,
+        loogu_talagalay TEXT,
+        cinwaan TEXT,
+        taariikh TIMESTAMP,
+        files TEXT
+    )
+    """))
 
 # ================= DEFAULT PASSWORDS =================
-if not os.path.exists(PASSWORDS_FILE):
-    waaxyo = [
-        "Xafiiska Wasiirka", "Wasiir Ku-xigeenka 1aad", "Wasiir Ku-xigeenka 2aad",
-        "Wasiir Ku-xigeenka 3aad", "Secretory", "Waaxda Auditka",
-        "Waaxda ICT", "Waaxda HRM", "Waaxda Public Relation",
-        "Arkiviya-1", "Arkiviya-2"
-    ]
-    pd.DataFrame({
-        "waaxda": waaxyo,
-        "password": ["Admin2100"] * len(waaxyo)
-    }).to_csv(PASSWORDS_FILE, index=False)
+waaxyo = [
+    "Xafiiska Wasiirka", "Wasiir Ku-xigeenka 1aad", "Wasiir Ku-xigeenka 2aad",
+    "Wasiir Ku-xigeenka 3aad", "Secretory", "Waaxda Auditka",
+    "Waaxda ICT", "Waaxda HRM", "Waaxda Public Relation",
+    "Arkiviya-1", "Arkiviya-2"
+]
 
-# ================= LOAD PASSWORDS =================
-df_passwords = pd.read_csv(PASSWORDS_FILE)
-waaxyo_passwords = dict(zip(df_passwords["waaxda"], df_passwords["password"]))
+with engine.begin() as conn:
+    for w in waaxyo:
+        conn.execute(text("""
+            INSERT INTO passwords (waaxda, password)
+            VALUES (:waaxda, :pwd)
+            ON CONFLICT (waaxda) DO NOTHING
+        """), {"waaxda": w, "pwd": "Admin2100"})
 
 # ================= ADMIN =================
 ADMIN_USER = "Admin"
@@ -53,15 +73,22 @@ if st.session_state.user is None:
     role = st.radio("Nooca Isticmaalaha", ["Waax", "Admin"])
 
     if role == "Waax":
-        waax = st.selectbox("Dooro Waaxda", list(waaxyo_passwords.keys()))
+        with engine.begin() as conn:
+            result = conn.execute(text("SELECT waaxda FROM passwords"))
+            waaxyo_passwords = [r[0] for r in result.fetchall()]
+
+        waax = st.selectbox("Dooro Waaxda", waaxyo_passwords)
         pwd = st.text_input("Password", type="password")
         if st.button("Gali"):
-            if pwd == waaxyo_passwords.get(waax):
-                st.session_state.user = waax
-                st.session_state.is_admin = False
-                st.experimental_rerun()
-            else:
-                st.error("❌ Password khaldan")
+            with engine.begin() as conn:
+                result = conn.execute(text("SELECT password FROM passwords WHERE waaxda=:w"), {"w": waax})
+                real_pwd = result.fetchone()
+                if real_pwd and pwd == real_pwd[0]:
+                    st.session_state.user = waax
+                    st.session_state.is_admin = False
+                    st.experimental_rerun()
+                else:
+                    st.error("❌ Password khaldan")
 
     else:
         u = st.text_input("Admin Username")
@@ -81,31 +108,22 @@ else:
     st.success(f"Ku soo dhawoow: {user}")
 
     # ================= LOAD WARAQAHA =================
-    if os.path.exists(WARAQAHA_FILE):
-        df = pd.read_csv(WARAQAHA_FILE)
-    else:
-        df = pd.DataFrame(columns=[
-            "Ka_socota", "Loogu_talagalay", "Cinwaan", "Taariikh", "Files"
-        ])
-
-    # ================= DATETIME CONVERSION =================
-    df["Taariikh"] = pd.to_datetime(df["Taariikh"], errors="coerce")
-    maanta = pd.Timestamp.today()
-
-    # ================= FILTER WARAQAHA =================
     if is_admin:
-        # Admin wuxuu arki karaa waraaqaha sanadka la soo dhaafay
-        sanad_hore = maanta - pd.DateOffset(years=1)
-        view_df = df[df["Taariikh"] >= sanad_hore]
+        query = "SELECT * FROM waraaqaha ORDER BY taariikh DESC"
+        df = pd.read_sql(query, engine)
     else:
-        # Waaxda caadiga ah waxay arki kartaa 3 maalmood keliya
-        view_df = df[(df["Loogu_talagalay"] == user) &
-                     (df["Taariikh"] >= (maanta - pd.Timedelta(days=3)))]
+        three_days_ago = datetime.now() - timedelta(days=3)
+        query = text("""
+            SELECT * FROM waraaqaha
+            WHERE loogu_talagalay=:user AND taariikh>=:date
+            ORDER BY taariikh DESC
+        """)
+        df = pd.read_sql(query, engine, params={"user": user, "date": three_days_ago})
 
     # ================= DIR WARAQ =================
     st.subheader("📤 Dir Waraaq")
     cinwaan = st.text_input("Cinwaanka Waraaqda")
-    loo = st.selectbox("Loogu talagalay", [w for w in waaxyo_passwords if w != user])
+    loo = st.selectbox("Loogu talagalay", [w for w in waaxyo if w != user])
 
     files = st.file_uploader(
         "Ku dar waraaqo (multiple files)",
@@ -122,33 +140,37 @@ else:
                 encoded = base64.b64encode(f.read()).decode()
                 saved_files.append({"name": f.name, "data": encoded})
 
-            new_row = {
-                "Ka_socota": user,
-                "Loogu_talagalay": loo,
-                "Cinwaan": cinwaan,
-                "Taariikh": datetime.now(),
-                "Files": base64.b64encode(str(saved_files).encode()).decode()
-            }
+            files_encoded = base64.b64encode(str(saved_files).encode()).decode()
 
-            df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-            df.to_csv(WARAQAHA_FILE, index=False)
+            with engine.begin() as conn:
+                conn.execute(text("""
+                    INSERT INTO waraaqaha (ka_socota, loogu_talagalay, cinwaan, taariikh, files)
+                    VALUES (:ks, :lt, :cin, :ta, :files)
+                """), {
+                    "ks": user,
+                    "lt": loo,
+                    "cin": cinwaan,
+                    "ta": datetime.now(),
+                    "files": files_encoded
+                })
             st.success("✅ Waraaqda waa la diray")
 
     # ================= VIEW WARAQAHA =================
     st.subheader("📥 Waraaqaha La Helay")
-    st.dataframe(view_df[["Ka_socota", "Cinwaan", "Taariikh"]])
+    if not df.empty:
+        st.dataframe(df[["ka_socota", "cinwaan", "taariikh"]])
 
-    # ================= DOWNLOAD FILES =================
-    for i, row in view_df.iterrows():
-        files = eval(base64.b64decode(row["Files"]).decode())
-        st.markdown(f"**📄 {row['Cinwaan']}**")
-        for f in files:
-            st.download_button(
-                label=f"⬇️ {f['name']}",
-                data=base64.b64decode(f["data"]),
-                file_name=f["name"],
-                key=f"{i}_{f['name']}"
-            )
+        # ================= DOWNLOAD FILES =================
+        for i, row in df.iterrows():
+            files_list = eval(base64.b64decode(row["files"]).decode())
+            st.markdown(f"**📄 {row['cinwaan']}**")
+            for f in files_list:
+                st.download_button(
+                    label=f"⬇️ {f['name']}",
+                    data=base64.b64decode(f["data"]),
+                    file_name=f["name"],
+                    key=f"{i}_{f['name']}"
+                )
 
     # ================= CHANGE PASSWORD =================
     if not is_admin:
@@ -158,14 +180,18 @@ else:
         confirm = st.text_input("Ku celi Password-ka", type="password")
 
         if st.button("Badal Password"):
-            if old != waaxyo_passwords.get(user):
-                st.error("Password hore khaldan")
-            elif new != confirm:
-                st.error("Password-yadu isma mid aha")
-            else:
-                df_passwords.loc[df_passwords["waaxda"] == user, "password"] = new
-                df_passwords.to_csv(PASSWORDS_FILE, index=False)
-                st.success("✅ Password waa la badalay")
+            with engine.begin() as conn:
+                result = conn.execute(text("SELECT password FROM passwords WHERE waaxda=:w"), {"w": user})
+                real_pwd = result.fetchone()[0]
+
+                if old != real_pwd:
+                    st.error("Password hore khaldan")
+                elif new != confirm:
+                    st.error("Password-yadu isma mid aha")
+                else:
+                    conn.execute(text("UPDATE passwords SET password=:p WHERE waaxda=:w"),
+                                 {"p": new, "w": user})
+                    st.success("✅ Password waa la badalay")
 
     # ================= LOGOUT =================
     if st.button("🚪 Ka Bax"):

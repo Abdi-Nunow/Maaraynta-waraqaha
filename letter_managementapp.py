@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime
 import io
 
 # ================= PAGE CONFIG =================
@@ -57,7 +57,7 @@ if st.session_state.user is None:
             if pwd == waaxyo_passwords.get(waax):
                 st.session_state.user = waax
                 st.session_state.is_admin = False
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Password khaldan ❌")
 
@@ -68,7 +68,7 @@ if st.session_state.user is None:
             if u == ADMIN_USER and p == ADMIN_PASS:
                 st.session_state.user = "Admin"
                 st.session_state.is_admin = True
-                st.rerun()
+                st.experimental_rerun()
             else:
                 st.error("Admin login khaldan ❌")
 
@@ -88,7 +88,7 @@ else:
             "Taariikh", "Files"
         ])
 
-    # ================= 3 MAALIN FILTER =================
+    # ================= 3 MAALIN KEYDIN =================
     df["Taariikh"] = pd.to_datetime(df["Taariikh"], errors="coerce")
     maanta = pd.Timestamp.today()
     df = df[df["Taariikh"] >= (maanta - pd.Timedelta(days=3))]
@@ -112,36 +112,32 @@ else:
             saved_files = []
             for f in files:
                 encoded = base64.b64encode(f.read()).decode()
-                saved_files.append({"name": f.name, "data": encoded})
+                saved_files.append({
+                    "name": f.name,
+                    "data": encoded
+                })
 
             new_row = {
                 "Ka_socota": user,
                 "Loogu_talagalay": loo,
                 "Cinwaan": cinwaan,
                 "Taariikh": datetime.now(),
-                "Files": base64.b64encode(
-                    str(saved_files).encode()
-                ).decode()
+                "Files": base64.b64encode(str(saved_files).encode()).decode()
             }
 
             df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
             df.to_csv(WARAQAHA_FILE, index=False)
-            st.success("✅ Waraaqda waa la diray (original files)")
+            st.success("✅ Waraaqda waa la diray")
 
-    # ================= VIEW WARAQAHA =================
+    # ================= VIEW =================
     st.subheader("📥 Waraaqaha")
 
-    if is_admin:
-        view_df = df
-    else:
-        view_df = df[df["Loogu_talagalay"] == user]
-
+    view_df = df if is_admin else df[df["Loogu_talagalay"] == user]
     st.dataframe(view_df[["Ka_socota", "Cinwaan", "Taariikh"]])
 
-    # ================= DOWNLOAD FILES =================
+    # ================= DOWNLOAD =================
     for i, row in view_df.iterrows():
         files = eval(base64.b64decode(row["Files"]).decode())
-        st.markdown(f"### 📄 {row['Cinwaan']}")
         for f in files:
             st.download_button(
                 label=f"⬇️ {f['name']}",
@@ -150,14 +146,14 @@ else:
                 key=f"{i}_{f['name']}"
             )
 
-    # ================= CHANGE PASSWORD =================
+    # ================= PASSWORD CHANGE =================
     if not is_admin:
         st.subheader("🔒 Badal Password")
-        old = st.text_input("Hore", type="password")
-        new = st.text_input("Cusub", type="password")
+        old = st.text_input("Password Hore", type="password")
+        new = st.text_input("Password Cusub", type="password")
         confirm = st.text_input("Ku celi", type="password")
 
-        if st.button("Badal"):
+        if st.button("Badal Password"):
             if old != waaxyo_passwords.get(user):
                 st.error("Password hore khaldan")
             elif new != confirm:
@@ -172,4 +168,4 @@ else:
     # ================= LOGOUT =================
     if st.button("🚪 Ka Bax"):
         st.session_state.clear()
-        st.rerun()
+        st.experimental_rerun()
